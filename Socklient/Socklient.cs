@@ -46,6 +46,7 @@ namespace SocklientDotNet {
             SendCommand(Command.Connect, GetAddressType(destHost), destHost, destPort);
 
             _socksType = Command.Connect;
+            _status = Status.Initialized;
         }
         
         public void UdpAssociate(string destHost, int destPort, int srcPort = 0) {
@@ -61,6 +62,7 @@ namespace SocklientDotNet {
             _udpClient.Connect(BoundType == AddressType.Domain ? BoundDomain : BoundAddress.ToString(), BoundPort);
 
             _socksType = Command.UdpAssociate;
+            _status = Status.Initialized;
         }
 
         public void Close() {
