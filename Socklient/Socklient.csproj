@@ -3,6 +3,17 @@
   <PropertyGroup>
     <TargetFrameworks>netcoreapp2.0;net40</TargetFrameworks>
     <RootNamespace>SocklientDotNet</RootNamespace>
+    <Version>1.0.2</Version>
+    <PackageProjectUrl>https://github.com/GreatFireWall/Socklient</PackageProjectUrl>
+    <Copyright />
+    <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
+    <Description>A socks5 client written in C# that implements RFC 1928.
+
+Supported Socks5 Commands: Connect &amp; UDP Associate.</Description>
+    <PackageTags>socks, socks5, socks client, proxy, client</PackageTags>
+    <Authors>iFeng</Authors>
+    <Company />
+    <Product />
   </PropertyGroup>
 
 </Project>

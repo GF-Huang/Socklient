@@ -47,14 +47,7 @@ namespace SocklientDotNet {
 
             _socksType = Command.Connect;
         }
-
-        /// <summary>
-        /// Make a UDP Associate socks with username/password for authentication
-        /// </summary>
-        /// <param name="destHost"></param>
-        /// <param name="destPort"></param>
-        /// <param name="srcPort">If you pass 0 to the <paramref name="srcPort"/>, the underlying service provider will assign a port number.</param>
-        /// <param name="credential"></param>
+        
         public void UdpAssociate(string destHost, int destPort, int srcPort = 0) {
             HandshakeAndAuthentication(_credential);
 
