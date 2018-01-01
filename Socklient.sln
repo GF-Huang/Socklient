@@ -1,0 +1,31 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio 15
+VisualStudioVersion = 15.0.27130.2010
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Socklient", "Socklient\Socklient.csproj", "{D005C912-F14F-4E3E-8B1F-B4802A0840CF}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Example", "Example\Example.csproj", "{E07A3D95-1779-4029-81A7-5EDF80CF578F}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{D005C912-F14F-4E3E-8B1F-B4802A0840CF}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{D005C912-F14F-4E3E-8B1F-B4802A0840CF}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{D005C912-F14F-4E3E-8B1F-B4802A0840CF}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{D005C912-F14F-4E3E-8B1F-B4802A0840CF}.Release|Any CPU.Build.0 = Release|Any CPU
+		{E07A3D95-1779-4029-81A7-5EDF80CF578F}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{E07A3D95-1779-4029-81A7-5EDF80CF578F}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{E07A3D95-1779-4029-81A7-5EDF80CF578F}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{E07A3D95-1779-4029-81A7-5EDF80CF578F}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {7A8A0C15-4C63-4B14-B174-59549B73AD92}
+	EndGlobalSection
+EndGlobal
