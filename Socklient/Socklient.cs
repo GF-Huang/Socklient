@@ -12,6 +12,26 @@ namespace SocklientDotNet {
         public string BoundDomain { get; protected set; }
         public IPAddress BoundAddress { get; protected set; }
         public int BoundPort { get; protected set; }
+        public int UdpSendTimeout {
+            get {
+                CheckUdpClient();
+                return _udpClient.Client.SendTimeout;
+            }
+            set {
+                CheckUdpClient();
+                _udpClient.Client.SendTimeout = value;
+            }
+        }
+        public int UdpReceiveTimeout {
+            get {
+                CheckUdpClient();
+                return _udpClient.Client.ReceiveTimeout;
+            }
+            set {
+                CheckUdpClient();
+                _udpClient.Client.ReceiveTimeout = value;
+            }
+        }
 
         #region Internal Fields
         static readonly byte VERSION = 0x05;
@@ -48,7 +68,7 @@ namespace SocklientDotNet {
             _socksType = Command.Connect;
             _status = Status.Initialized;
         }
-        
+
         public void UdpAssociate(string destHost, int destPort, int srcPort = 0) {
             HandshakeAndAuthentication(_credential);
 
@@ -127,7 +147,7 @@ namespace SocklientDotNet {
 
         public byte[] Receive(out string remoteHost, out int remotePort) {
             CheckSocksType(Command.UdpAssociate);
-            
+
             return UnpackUdp(_udpClient.Receive(ref _remoteEndPoint), out remoteHost, out remotePort);
         }
         #endregion
@@ -391,7 +411,7 @@ namespace SocklientDotNet {
 
                         BoundAddress = new IPAddress(addressBytes);
                         if (_socksType == Command.UdpAssociate && (BoundAddress.Equals(IPAddress.Any) || BoundAddress.Equals(IPAddress.IPv6Any)))
-                            BoundAddress = IPAddress.Parse(destAddress);                        
+                            BoundAddress = IPAddress.Parse(destAddress);
                     }
                     break;
                 case AddressType.Domain: {
@@ -415,6 +435,11 @@ namespace SocklientDotNet {
         protected void CheckSocksType(Command allowedType) {
             if (_socksType != allowedType)
                 throw new InvalidOperationException($"This method only available where socklient under {allowedType} mode");
+        }
+
+        protected void CheckUdpClient() {
+            if (_udpClient == null)
+                throw new InvalidOperationException("This property is available after 'Socklient.UdpAssociate' success.");
         }
 
         enum Status {

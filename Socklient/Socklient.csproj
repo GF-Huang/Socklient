@@ -3,7 +3,7 @@
   <PropertyGroup>
     <TargetFrameworks>netcoreapp2.0;net40</TargetFrameworks>
     <RootNamespace>SocklientDotNet</RootNamespace>
-    <Version>1.0.3</Version>
+    <Version>1.0.4</Version>
     <PackageProjectUrl>https://github.com/GreatFireWall/Socklient</PackageProjectUrl>
     <Copyright />
     <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
@@ -14,7 +14,7 @@ Supported Socks5 Commands: Connect &amp; UDP Associate.</Description>
     <Authors>iFeng</Authors>
     <Company />
     <Product />
-    <PackageReleaseNotes />
+    <PackageReleaseNotes>add udp timeout control property.</PackageReleaseNotes>
   </PropertyGroup>
 
 </Project>
