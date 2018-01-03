@@ -1,14 +1,20 @@
-# Socklient
+Socklient
+=========
 A Socks5 Client written in C# that implements RFC 1928 &amp; 1929.
 
-# Features
+Features
+========
 Support TCP (Connect) & UDP Associate
 
-# NuGet
+NuGet
+=====
 https://www.nuget.org/packages/Socklient
 
-# Example
-```
+Example
+=======
+
+TCP Relay:
+```csharp
 // Find a socks5 server by yourself, google search is a easy way.
 var socks5ServerHostNameOrAddress = "xxx.xxx.xxx.xxx"; // or a hostname
 var serverPort = 0; // assign service port you found of socks5 server
@@ -43,7 +49,10 @@ try {
 } catch (Exception e) {
     Console.WriteLine($"TCP: {e.Message}");
 }
+```
 
+UDP Relay:
+```csharp
 // Udp Example
 try {
     var socklient = new Socklient(socks5ServerHostNameOrAddress, serverPort);
