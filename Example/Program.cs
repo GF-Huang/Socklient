@@ -22,7 +22,7 @@ namespace Example {
                 // you can pass a NetworkCredential contains username/password if socks server need a basic authencation
                 //var socklient = new Socklient(socks5ServerHostNameOrAddress, serverPort, new System.Net.NetworkCredential("user", "pwd"));
 
-                // tell socklient connect to target server
+                // tell socks server connect to target server
                 socklient.Connect(targetHost, targetPort);
                 
                 Console.WriteLine($"TCP: Supported, {socklient.BoundType} {(socklient.BoundType == AddressType.Domain ? socklient.BoundDomain : socklient.BoundAddress.ToString())}:{socklient.BoundPort}");
@@ -54,7 +54,7 @@ namespace Example {
                 // assign a service port
                 targetPort = 0;
 
-                // tell socklient do udp relay to targethost:targetport.
+                // tell socks server do udp relay to targethost:targetport.
                 // the last argument srcPort means socklient use localport 10000 to communicate with socks server, you can assign 0 if you dont care
                 socklient.UdpAssociate(targetHost, targetPort, 10000);
                 // set timeout for receive
