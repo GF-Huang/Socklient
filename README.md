@@ -72,6 +72,10 @@ try {
 
     // send data via socks5 server
     socklient.Send(new byte[] { 1, 2, 3, 4 });
+    
+    // also, you can send to a different host:port 
+    // for all kinds of Nat (Port-Restricted cone NAT, Address-Restricted cone NAT, Full cone NAT, etc...)
+    // socklient.Send(new byte[] { 1, 2, 3, 4 }, "anotherhost.what.you.want", 5555);
 
     // receive data and remote host information that sent back data to socks5 server
     var received = BitConverter.ToString(socklient.Receive(out var remoteHost, out int remotePort));
