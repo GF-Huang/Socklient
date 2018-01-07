@@ -3,7 +3,7 @@
   <PropertyGroup>
     <TargetFrameworks>netcoreapp2.0;net40</TargetFrameworks>
     <RootNamespace>SocklientDotNet</RootNamespace>
-    <Version>1.1.0</Version>
+    <Version>1.1.1</Version>
     <PackageProjectUrl>https://github.com/GreatFireWall/Socklient</PackageProjectUrl>
     <Copyright />
     <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
@@ -14,9 +14,9 @@ Supported Socks5 Commands: Connect &amp; UDP Associate.</Description>
     <Authors>iFeng</Authors>
     <Company />
     <Product />
-    <PackageReleaseNotes>add methd 'Send(byte[], string, int)' for making different NAT type.</PackageReleaseNotes>
-    <AssemblyVersion>1.1.0.0</AssemblyVersion>
-    <FileVersion>1.1.0.0</FileVersion>
+    <PackageReleaseNotes>add xml documentation files.</PackageReleaseNotes>
+    <AssemblyVersion>1.1.1.0</AssemblyVersion>
+    <FileVersion>1.1.1.0</FileVersion>
     <ApplicationIcon />
     <Win32Resource />
     <SignAssembly>false</SignAssembly>
@@ -24,19 +24,26 @@ Supported Socks5 Commands: Connect &amp; UDP Associate.</Description>
 
   <PropertyGroup Condition="'$(Configuration)|$(TargetFramework)|$(Platform)'=='Debug|netcoreapp2.0|AnyCPU'">
     <DocumentationFile>bin\Debug\netcoreapp2.0\Socklient.xml</DocumentationFile>
-    <NoWarn>1701;1702;1705</NoWarn>
+    <NoWarn>1701;1702;1705;1591</NoWarn>
+    <WarningLevel>4</WarningLevel>
   </PropertyGroup>
 
   <PropertyGroup Condition="'$(Configuration)|$(TargetFramework)|$(Platform)'=='Debug|net40|AnyCPU'">
     <DocumentationFile>bin\Debug\net40\Socklient.xml</DocumentationFile>
+    <NoWarn>1701;1702;1705;1591</NoWarn>
+    <WarningLevel>4</WarningLevel>
   </PropertyGroup>
 
   <PropertyGroup Condition="'$(Configuration)|$(TargetFramework)|$(Platform)'=='Release|netcoreapp2.0|AnyCPU'">
     <DocumentationFile>bin\Release\netcoreapp2.0\Socklient.xml</DocumentationFile>
+    <NoWarn>1701;1702;1705;1591</NoWarn>
+    <WarningLevel>4</WarningLevel>
   </PropertyGroup>
 
   <PropertyGroup Condition="'$(Configuration)|$(TargetFramework)|$(Platform)'=='Release|net40|AnyCPU'">
     <DocumentationFile>bin\Release\net40\Socklient.xml</DocumentationFile>
+    <NoWarn>1701;1702;1705;1591</NoWarn>
+    <WarningLevel>4</WarningLevel>
   </PropertyGroup>
 
 </Project>
