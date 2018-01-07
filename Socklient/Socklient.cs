@@ -85,7 +85,7 @@ namespace SocklientDotNet {
         /// </summary>
         /// <param name="socks5ServerHost">Socks5 Server hostname or address</param>
         /// <param name="port">socks5 protocol service port</param>
-        /// <param name="credential">a simple credential contains username & password for authentication</param>
+        /// <param name="credential">a simple credential contains username and password for authentication</param>
         public Socklient(string socks5ServerHost, int port, NetworkCredential credential) {
             _socksServerHost = socks5ServerHost;
             _credential = credential;
