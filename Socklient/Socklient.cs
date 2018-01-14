@@ -29,9 +29,11 @@ namespace SocklientDotNet {
         /// BND.PORT
         /// </summary>
         public int BoundPort { get; protected set; }
+
         /// <summary>
         /// Inner UdpClient timeout setting
         /// </summary>
+        [Obsolete("Use property 'UDP' insteads for more fine-grained control")]
         public int UdpSendTimeout {
             get {
                 CheckUdpClient();
@@ -45,6 +47,7 @@ namespace SocklientDotNet {
         /// <summary>
         /// Inner UdpClient timeout setting
         /// </summary>
+        [Obsolete("Use property 'UDP' insteads for more fine-grained control")]
         public int UdpReceiveTimeout {
             get {
                 CheckUdpClient();
@@ -55,6 +58,16 @@ namespace SocklientDotNet {
                 _udpClient.Client.ReceiveTimeout = value;
             }
         }
+
+        /// <summary>
+        /// Get underlying TcpClient for more fine-grained control when you are using CONNECT mode
+        /// </summary>
+        public TcpClient TCP { get => _tcpClient; }
+
+        /// <summary>
+        /// Get underlying UdpClient for more fine-grained control when you are using UDP-ASSOCIATE mode
+        /// </summary>
+        public UdpClient UDP { get => _udpClient; }
 
         #region Internal Fields
         static readonly byte VERSION = 0x05;

@@ -68,6 +68,9 @@ try {
     // the last argument srcPort means socklient use localport 10000 to communicate with socks server, you can assign 0 if you dont care
     socklient.UdpAssociate(targetHost, targetPort, 10000);
 
+    // set timeout for receive
+    socklient.UDP.Client.ReceiveTimeout = 5000;
+
     Console.WriteLine($"UDP: Supported, {socklient.BoundType} {(socklient.BoundType == AddressType.Domain ? socklient.BoundDomain : socklient.BoundAddress.ToString())}:{socklient.BoundPort}");
 
     // send data via socks5 server
