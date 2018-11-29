@@ -1,10 +1,15 @@
-﻿using System;
+﻿/*
+ * SOCKS Protocol Version 5: https://tools.ietf.org/html/rfc1928
+ */
+
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Net;
 using System.Net.Sockets;
 using System.Text;
+using System.Threading.Tasks;
 
 namespace SocklientDotNet {
     public class Socklient : IDisposable {
@@ -37,11 +42,11 @@ namespace SocklientDotNet {
         public int UdpSendTimeout {
             get {
                 CheckUdpClient();
-                return _udpClient.Client.SendTimeout;
+                return UDP.Client.SendTimeout;
             }
             set {
                 CheckUdpClient();
-                _udpClient.Client.SendTimeout = value;
+                UDP.Client.SendTimeout = value;
             }
         }
         /// <summary>
@@ -51,37 +56,35 @@ namespace SocklientDotNet {
         public int UdpReceiveTimeout {
             get {
                 CheckUdpClient();
-                return _udpClient.Client.ReceiveTimeout;
+                return UDP.Client.ReceiveTimeout;
             }
             set {
                 CheckUdpClient();
-                _udpClient.Client.ReceiveTimeout = value;
+                UDP.Client.ReceiveTimeout = value;
             }
         }
 
         /// <summary>
         /// Get underlying TcpClient for more fine-grained control when you are using CONNECT mode
         /// </summary>
-        public TcpClient TCP { get => _tcpClient; }
+        public TcpClient TCP { get; private set; }
 
         /// <summary>
         /// Get underlying UdpClient for more fine-grained control when you are using UDP-ASSOCIATE mode
         /// </summary>
-        public UdpClient UDP { get => _udpClient; }
+        public UdpClient UDP { get; private set; }
 
         #region Internal Fields
-        static readonly byte VERSION = 0x05;
+        const byte VERSION = 0x05;
         // Defines in RFC 1929
-        static readonly byte AUTHENTICATION_VERSION = 0x01;
+        const byte AUTHENTICATION_VERSION = 0x01;
 
         string _socksServerHost;
+        int _socksServerPort;
         NetworkCredential _credential;
-        TcpClient _tcpClient;
         NetworkStream _stream;
         Status _status = Status.Initial;
         Command _socksType;
-
-        UdpClient _udpClient;
         string _udpDestHost;
         int _udpDestPort;
         #endregion
@@ -101,10 +104,11 @@ namespace SocklientDotNet {
         /// <param name="credential">a simple credential contains username and password for authentication</param>
         public Socklient(string socks5ServerHost, int port, NetworkCredential credential) {
             _socksServerHost = socks5ServerHost;
+            _socksServerPort = port;
             _credential = credential;
-            // Connect to server
-            _tcpClient = new TcpClient(socks5ServerHost, port);
-            _stream = _tcpClient.GetStream();
+
+            TCP = new TcpClient();
+            _stream = TCP.GetStream();
         }
 
         /// <summary>
@@ -113,9 +117,27 @@ namespace SocklientDotNet {
         /// <param name="destHostNameOrAddress"></param>
         /// <param name="destPort"></param>
         public void Connect(string destHostNameOrAddress, int destPort) {
+            TCP.Connect(_socksServerHost, _socksServerPort);
+
             HandshakeAndAuthentication(_credential);
 
             SendCommand(Command.Connect, destHostNameOrAddress, destPort);
+
+            _socksType = Command.Connect;
+            _status = Status.Initialized;
+        }
+
+        /// <summary>
+        /// Send a connect command to socks5 server for TCP relay as an asynchronous operation
+        /// </summary>
+        /// <param name="destHostNameOrAddress"></param>
+        /// <param name="destPort"></param>
+        public async Task ConnectAsync(string destHostNameOrAddress, int destPort) {
+            await TCP.ConnectAsync(_socksServerHost, _socksServerPort);
+
+            await HandshakeAndAuthenticationAsync(_credential);
+
+            await SendCommandAsync(Command.Connect, destHostNameOrAddress, destPort);
 
             _socksType = Command.Connect;
             _status = Status.Initialized;
@@ -128,6 +150,8 @@ namespace SocklientDotNet {
         /// <param name="destPort"></param>
         /// <param name="srcPort"></param>
         public void UdpAssociate(string destHostNameOrAddress, int destPort, int srcPort = 0) {
+            TCP.Connect(_socksServerHost, _socksServerPort);
+
             HandshakeAndAuthentication(_credential);
 
             _udpDestHost = destHostNameOrAddress;
@@ -135,9 +159,33 @@ namespace SocklientDotNet {
 
             SendCommand(Command.UdpAssociate, _socksServerHost, srcPort);
 
-            _udpClient = new UdpClient(srcPort);
+            UDP = new UdpClient(srcPort);
             // Establishes a default remote host to socks server
-            _udpClient.Connect(BoundType == AddressType.Domain ? BoundDomain : BoundAddress.ToString(), BoundPort);
+            UDP.Connect(BoundType == AddressType.Domain ? BoundDomain : BoundAddress.ToString(), BoundPort);
+
+            _socksType = Command.UdpAssociate;
+            _status = Status.Initialized;
+        }
+
+        /// <summary>
+        /// Send a udp associate command to socks5 server for UDP relay as an asynchronous operation
+        /// </summary>
+        /// <param name="destHostNameOrAddress"></param>
+        /// <param name="destPort"></param>
+        /// <param name="srcPort"></param>
+        public async Task UdpAssociateAsync(string destHostNameOrAddress, int destPort, int srcPort = 0) {
+            await TCP.ConnectAsync(_socksServerHost, _socksServerPort);
+
+            await HandshakeAndAuthenticationAsync(_credential);
+
+            _udpDestHost = destHostNameOrAddress;
+            _udpDestPort = destPort;
+
+            await SendCommandAsync(Command.UdpAssociate, _socksServerHost, srcPort);
+
+            UDP = new UdpClient(srcPort);
+            // Establishes a default remote host to socks server
+            UDP.Connect(BoundType == AddressType.Domain ? BoundDomain : BoundAddress.ToString(), BoundPort);
 
             _socksType = Command.UdpAssociate;
             _status = Status.Initialized;
@@ -147,21 +195,20 @@ namespace SocklientDotNet {
         /// Close and release all connections and local udp ports
         /// </summary>
         public void Close() {
-            if (_stream != null)
-                _stream.Close();
-            if (_tcpClient != null)
-                _tcpClient.Close();
-            if (_udpClient != null)
-                _udpClient.Close();
+            _stream?.Close();
+            TCP?.Close();
+            UDP?.Close();
 
             _stream = null;
-            _tcpClient = null;
-            _udpClient = null;
+            TCP = null;
+            UDP = null;
 
             _status = Status.Closed;
         }
 
         #region Use for Connect command        
+        // Sync 
+
         /// <summary>
         /// Sending string data used for TCP relay
         /// </summary>
@@ -180,6 +227,12 @@ namespace SocklientDotNet {
             _stream.Write(data, 0, data.Length);
         }
 
+        /// <summary>
+        /// Sending bytes data used for TCP relay
+        /// </summary>
+        /// <param name="buffer"></param>
+        /// <param name="offset"></param>
+        /// <param name="size"></param>
         public void Write(byte[] buffer, int offset, int size) {
             CheckSocksType(Command.Connect);
 
@@ -198,10 +251,54 @@ namespace SocklientDotNet {
 
             return _stream.Read(buffer, offset, size);
         }
+
+        // Async
+
+        /// <summary>
+        /// Sending string data used for TCP relay as an asynchronous operation
+        /// </summary>
+        /// <param name="str"></param>
+        public Task WriteAsync(string str) => WriteAsync(Encoding.UTF8.GetBytes(str));
+
+        /// <summary>
+        /// Sending bytes data used for TCP relay as an asynchronous operation
+        /// </summary>
+        /// <param name="data"></param>
+        public Task WriteAsync(byte[] data) {
+            CheckSocksType(Command.Connect);
+
+            return _stream.WriteAsync(data, 0, data.Length);
+        }
+
+        /// <summary>
+        /// Sending bytes data used for TCP relay as an asynchronous operation
+        /// </summary>
+        /// <param name="buffer"></param>
+        /// <param name="offset"></param>
+        /// <param name="size"></param>
+        public Task WriteAsync(byte[] buffer, int offset, int size) {
+            CheckSocksType(Command.Connect);
+
+            return _stream.WriteAsync(buffer, offset, size);
+        }
+
+        /// <summary>
+        /// Reading bytes data used for TCP relay
+        /// </summary>
+        /// <param name="buffer"></param>
+        /// <param name="offset"></param>
+        /// <param name="size"></param>
+        /// <returns></returns>
+        public Task<int> ReadAsync(byte[] buffer, int offset, int size) {
+            CheckSocksType(Command.Connect);
+
+            return _stream.ReadAsync(buffer, offset, size);
+        }
         #endregion
 
-
         #region Use for UDP Associate Command
+        // Sync
+
         /// <summary>
         /// Sending string data used for UDP relay
         /// </summary>
@@ -212,8 +309,8 @@ namespace SocklientDotNet {
         }
 
         /// <summary>
-        /// Sending string data to a different host:port from 'Socklient.UdpAssociate' that you associate
-        /// <para>It make "Port-Restricted cone NAT", "Address-Restricted cone NAT" and "Full cone NAT" become possible</para>
+        /// Sending string data to a different host:port that you associate via 'Socklient.UdpAssociate' previously
+        /// <para>It makes "Port-Restricted cone NAT", "Address-Restricted cone NAT" and "Full cone NAT" become possible</para>
         /// </summary>
         /// <param name="str"></param>
         /// <param name="destHostNameOrAddress"></param>
@@ -232,12 +329,14 @@ namespace SocklientDotNet {
             CheckSocksType(Command.UdpAssociate);
 
             var packedDatagram = PackUdp(_udpDestHost, _udpDestPort, datagram);
-            return _udpClient.Send(packedDatagram, packedDatagram.Length);
+            var headerLength = packedDatagram.Length - datagram.Length;
+
+            return UDP.Send(packedDatagram, packedDatagram.Length) - headerLength;
         }
 
         /// <summary>
-        /// Sending user datagram to a different host:port from 'Socklient.UdpAssociate' that you associate
-        /// <para>It make "Port-Restricted cone NAT", "Address-Restricted cone NAT" and "Full cone NAT" become possible</para>
+        /// Sending user datagram to a different host:port that you associate via 'Socklient.UdpAssociate' previously
+        /// <para>It makes "Port-Restricted cone NAT", "Address-Restricted cone NAT" and "Full cone NAT" become possible</para>
         /// </summary>
         /// <param name="datagram"></param>
         /// <param name="destHostNameOrAddress"></param>
@@ -247,10 +346,14 @@ namespace SocklientDotNet {
             CheckSocksType(Command.UdpAssociate);
 
             var packedDatagram = PackUdp(destHostNameOrAddress, destPort, datagram);
-            return _udpClient.Send(packedDatagram, packedDatagram.Length);
+            var headerLength = packedDatagram.Length - datagram.Length;
+
+            return UDP.Send(packedDatagram, packedDatagram.Length) - headerLength;
         }
 
-        // Works for an ugly API design of UdpClient.Receive(ref System.Net.IPEndPoint remoteEP), use 'out' instead of 'ref' is easier to use.
+        // Typically, we don't care this endpoint.
+        // Works for an ugly API design of UdpClient.Receive(ref System.Net.IPEndPoint remoteEP), 
+        // use 'out' instead of 'ref' is easier to use.
         // See its source: https://referencesource.microsoft.com/#System/net/System/Net/Sockets/UDPClient.cs,695
         private IPEndPoint _remoteEndPoint = new IPEndPoint(IPAddress.Loopback, 0);
 
@@ -258,9 +361,7 @@ namespace SocklientDotNet {
         /// Receiving datagram for UDP relay
         /// </summary>
         /// <returns></returns>
-        public byte[] Receive() {
-            return Receive(out _, out _);
-        }
+        public byte[] Receive() => Receive(out _, out _);
 
         /// <summary>
         /// Receiving datagram with remote host info for UDP relay
@@ -271,17 +372,81 @@ namespace SocklientDotNet {
         public byte[] Receive(out string remoteHost, out int remotePort) {
             CheckSocksType(Command.UdpAssociate);
 
-            return UnpackUdp(_udpClient.Receive(ref _remoteEndPoint), out remoteHost, out remotePort);
+            return UnpackUdp(UDP.Receive(ref _remoteEndPoint), out remoteHost, out remotePort);
+        }
+
+        // Async
+
+        /// <summary>
+        /// Sending string data used for UDP relay as an asynchronous operation
+        /// </summary>
+        /// <param name="str"></param>
+        /// <returns></returns>
+        public Task<int> SendAsync(string str) => SendAsync(Encoding.UTF8.GetBytes(str));
+
+        /// <summary>
+        /// As asynchronous operation, sending string data to a different host:port that you associate via 'Socklient.UdpAssociate' previously
+        /// <para>It makes "Port-Restricted cone NAT", "Address-Restricted cone NAT" and "Full cone NAT" become possible</para>
+        /// </summary>
+        /// <param name="str"></param>
+        /// <param name="destHostNameOrAddress"></param>
+        /// <param name="destPort"></param>
+        /// <returns></returns>
+        public Task<int> SendAsync(string str, string destHostNameOrAddress, int destPort) => 
+            SendAsync(Encoding.UTF8.GetBytes(str), destHostNameOrAddress, destPort);
+
+        /// <summary>
+        /// Sending user datagram used for UDP relay as an asynchronous operation
+        /// </summary>
+        /// <param name="datagram"></param>
+        /// <returns>Sent bytes count</returns>
+        public async Task<int> SendAsync(byte[] datagram) {
+            CheckSocksType(Command.UdpAssociate);
+
+            var packedDatagram = PackUdp(_udpDestHost, _udpDestPort, datagram);
+            var headerLength = packedDatagram.Length - datagram.Length;
+
+            return await UDP.SendAsync(packedDatagram, packedDatagram.Length) - headerLength;
+        }
+
+        /// <summary>
+        /// As asynchronous operation, sending user datagram to a different host:port that you associate via 'Socklient.UdpAssociate' previously
+        /// <para>It makes "Port-Restricted cone NAT", "Address-Restricted cone NAT" and "Full cone NAT" become possible</para>
+        /// </summary>
+        /// <param name="datagram"></param>
+        /// <param name="destHostNameOrAddress"></param>
+        /// <param name="destPort"></param>
+        /// <returns></returns>
+        public async Task<int> SendAsync(byte[] datagram, string destHostNameOrAddress, int destPort) {
+            CheckSocksType(Command.UdpAssociate);
+
+            var packedDatagram = PackUdp(destHostNameOrAddress, destPort, datagram);
+            var headerLength = packedDatagram.Length - datagram.Length;
+
+            return await UDP.SendAsync(packedDatagram, packedDatagram.Length) - headerLength;
+        }
+
+        /// <summary>
+        /// Receiving datagram with remote host info for UDP relay as an asynchronous operation
+        /// </summary>
+        /// <returns></returns>
+        public async Task<UdpReceivePacket> ReceiveAsync() {
+            CheckSocksType(Command.UdpAssociate);
+
+            var result = await UDP.ReceiveAsync();
+
+            var buffer = UnpackUdp(result.Buffer, out var remoteHost, out var remotePort);
+
+            return new UdpReceivePacket(buffer, remoteHost, remotePort);
         }
         #endregion
 
-
         protected void HandshakeAndAuthentication(NetworkCredential credential) {
             if (_status == Status.Initialized)
-                throw new InvalidOperationException("[HandshakeAndAuthentication] Socklient has been initialized.");
+                throw new InvalidOperationException("Socklient has been initialized.");
 
             if (_status == Status.Closed)
-                throw new InvalidOperationException("[HandshakeAndAuthentication] Socklient closed, renew an instance for reuse.");
+                throw new InvalidOperationException("Socklient closed, renew an instance for reuse.");
 
             var methods = new List<Method> { Method.NoAuthentication };
             if (credential != null)
@@ -293,14 +458,35 @@ namespace SocklientDotNet {
                 Authenticate(credential.UserName, credential.Password);
         }
 
-        protected AddressType GetAddressType(string hostNameOrAddress) {
+        protected async Task HandshakeAndAuthenticationAsync(NetworkCredential credential) {
+            if (_status == Status.Initialized)
+                throw new InvalidOperationException("Socklient has been initialized.");
+
+            if (_status == Status.Closed)
+                throw new InvalidOperationException("Socklient closed, renew an instance for reuse.");
+
+            var methods = new List<Method> { Method.NoAuthentication };
+            if (credential != null)
+                methods.Add(Method.UsernamePassword);
+
+            var method = await HandshakeAsync(methods.ToArray());
+
+            if (method == Method.UsernamePassword)
+                await AuthenticateAsync(credential.UserName, credential.Password);
+        }
+
+        protected AddressType PackDestinationAddress(string hostNameOrAddress, out byte[] addressBytes) {
             var isValid = IPAddress.TryParse(hostNameOrAddress, out var address);
 
             AddressType addressType;
-            if (isValid)
+            if (isValid) {
                 addressType = address.AddressFamily == AddressFamily.InterNetworkV6 ? AddressType.IPv6 : AddressType.IPv4;
-            else
+                addressBytes = address.GetAddressBytes();
+
+            } else {
                 addressType = AddressType.Domain;
+                addressBytes = Encoding.UTF8.GetBytes(hostNameOrAddress);
+            }
 
             return addressType;
         }
@@ -312,33 +498,37 @@ namespace SocklientDotNet {
             // +-----+------+------+----------+----------+----------+
             // |  2  |  1   |  1   | Variable |    2     | Variable |
             // +-----+------+------+----------+----------+----------+
-            var buffer = new List<byte>();
 
-            var type = GetAddressType(destHostNameOrAddress);
+            var type = PackDestinationAddress(destHostNameOrAddress, out var addressBytes);
 
-            buffer.AddRange(new byte[] { 0x00, 0x00 }); // RSV
-            buffer.Add(0x00); // FRAG
-            buffer.Add((byte)type); // ATYP
-            // DST.ADDR
-            switch (type) {
-                case AddressType.IPv4:
-                case AddressType.IPv6:
-                    buffer.AddRange(IPAddress.Parse(destHostNameOrAddress).GetAddressBytes());
-                    break;
-                case AddressType.Domain:
-                    var hostNameBytes = Encoding.UTF8.GetBytes(destHostNameOrAddress);
-                    buffer.Add((byte)hostNameBytes.Length);
-                    buffer.AddRange(hostNameBytes);
-                    break;
-                default:
-                    throw new InvalidOperationException($"[SendCommand] Unsupported type: {type}.");
+            // 1 byte of domain name length followed by 1–255 bytes the domain name if destination address is a domain
+            var destAddressLength = addressBytes.Length + (type == AddressType.Domain ? 1 : 0);
+            var buffer = new byte[4 + destAddressLength + 2 + payload.Length];
+
+            using (var stream = new MemoryStream(buffer))
+            using (var writer = new BinaryWriter(stream)) {
+                writer.Write(ushort.MinValue);
+                writer.Write(byte.MinValue);
+                writer.Write((byte)type);
+
+                switch (type) {
+                    case AddressType.IPv4:
+                    case AddressType.IPv6:
+                        writer.Write(addressBytes);
+                        break;
+                    case AddressType.Domain:
+                        writer.Write((byte)addressBytes.Length);
+                        writer.Write(addressBytes);
+                        break;
+                    default:
+                        throw new InvalidOperationException($"Unsupported type: {type}.");
+                }
+
+                writer.Write(IPAddress.HostToNetworkOrder((short)destPort));
+                writer.Write(payload);
             }
-            // DST.PORT
-            buffer.AddRange(BitConverter.GetBytes(IPAddress.HostToNetworkOrder((short)destPort)));
-            // DATA
-            buffer.AddRange(payload);
 
-            return buffer.ToArray();
+            return buffer;
         }
 
         protected byte[] UnpackUdp(byte[] buffer, out string remoteHost, out int remotePort) {
@@ -348,213 +538,310 @@ namespace SocklientDotNet {
             // +-----+------+------+----------+----------+----------+
             // |  2  |  1   |  1   | Variable |    2     | Variable |
             // +-----+------+------+----------+----------+----------+
-            var headerLength = 4;
 
-            var addressType = (AddressType)buffer[3];
+            using (var stream = new MemoryStream(buffer))
+            using (var reader = new BinaryReader(stream)) {
+                try {
+                    // ignore RSV and FRAG fields
+                    reader.ReadBytes(3);
 
-            if (addressType == AddressType.Domain) {
-                var numberOfDomainBytes = buffer[4];
-                remoteHost = Encoding.UTF8.GetString(buffer, 5, numberOfDomainBytes);
+                    var type = (AddressType)reader.ReadByte();
+                    var addressLength = 0;
 
-                headerLength += numberOfDomainBytes + 1;
+                    if (type == AddressType.Domain) {
+                        var domainBytesCount = reader.ReadByte();
+                        var domainBytes = reader.ReadBytes(domainBytesCount);
 
-            } else {
-                var addressBytes = new byte[addressType == AddressType.IPv4 ? 4 : 16];
-                Buffer.BlockCopy(buffer, 4, addressBytes, 0, addressBytes.Length);
-                remoteHost = new IPAddress(addressBytes).ToString();
+                        if (domainBytes.Length != domainBytesCount)
+                            throw new ProtocolErrorException($"Server reply a error domain, length: {domainBytes.Length}, bytes: {BitConverter.ToString(domainBytes)}, domain: {Encoding.UTF8.GetString(domainBytes)}");
 
-                headerLength += addressBytes.Length;
+                        remoteHost = Encoding.UTF8.GetString(domainBytes);
+
+                        addressLength = domainBytesCount;
+
+                    } else {
+                        var addressBytesCount = type == AddressType.IPv4 ? 4 : 16;
+                        var addressBytes = reader.ReadBytes(addressBytesCount);
+
+                        if (addressBytes.Length != addressBytesCount)
+                            throw new ProtocolErrorException($"Server reply an error address, length: {addressBytes.Length}, bytes: {BitConverter.ToString(addressBytes)}");
+
+                        remoteHost = new IPAddress(addressBytes).ToString();
+
+                        addressLength = addressBytesCount;
+                    }
+
+                    remotePort = (ushort)IPAddress.NetworkToHostOrder(reader.ReadInt16());
+
+                    var payloadLength = buffer.Length - 4 - addressLength - 2;
+
+                    return reader.ReadBytes(payloadLength);
+
+                } catch (EndOfStreamException) {
+                    throw new ProtocolErrorException($"Server respond unknown message: {BitConverter.ToString(buffer)}.");
+                }
             }
-
-            remotePort = (ushort)IPAddress.NetworkToHostOrder(BitConverter.ToInt16(buffer, headerLength));
-
-            headerLength += 2;
-
-            var originDatagram = new byte[buffer.Length - headerLength];
-            Buffer.BlockCopy(buffer, headerLength, originDatagram, 0, originDatagram.Length);
-
-            return originDatagram;
         }
 
         protected Method Handshake(params Method[] selectionMethods) {
-            if (selectionMethods.Length > 255)
-                throw new InvalidOperationException("[Handshake] Param 'selectionMethods'.Length can not greater than 255.");
-
             // Send version and methods
+            var sendBuffer = PackHandshake(selectionMethods);
+            _stream.Write(sendBuffer, 0, sendBuffer.Length);
+
+            // Receive server selection method 
+            var receiveBuffer = new byte[2];
+            var numberOfBytesRead = _stream.Read(receiveBuffer, 0, receiveBuffer.Length);
+
+            return UnpackHandshake(receiveBuffer, numberOfBytesRead, selectionMethods);
+        }
+
+        protected async Task<Method> HandshakeAsync(params Method[] selectionMethods) {
+            // Send version and methods
+            var sendBuffer = PackHandshake(selectionMethods);
+            await _stream.WriteAsync(sendBuffer, 0, sendBuffer.Length);
+
+            // Receive server selection method 
+            var receiveBuffer = new byte[2];
+            var numberOfBytesRead = await _stream.ReadAsync(receiveBuffer, 0, receiveBuffer.Length);
+
+            return UnpackHandshake(receiveBuffer, numberOfBytesRead, selectionMethods);
+        }
+
+        protected byte[] PackHandshake(params Method[] selectionMethods) {
             // +-----+----------+----------+
             // | VER | NMETHODS | METHODS  |
             // +-----+----------+----------+
             // |  1  |    1     | 1 to 255 |
             // +-----+----------+----------+
-            var sendBuffer = new List<byte>();
-            sendBuffer.Add(VERSION);
-            sendBuffer.Add((byte)selectionMethods.Length);
-            sendBuffer.AddRange(selectionMethods.Select(m => (byte)m));
 
-            _stream.Write(sendBuffer.ToArray(), 0, sendBuffer.Count);
+            if (selectionMethods.Length > 255)
+                throw new InvalidOperationException("Param 'selectionMethods'.Length can not greater than 255.");
 
+            var buffer = new byte[2 + selectionMethods.Length];
 
-            // Receive server selection method 
+            using (var stream = new MemoryStream(buffer))
+            using (var writer = new BinaryWriter(stream)) {
+                writer.Write(VERSION);
+                writer.Write((byte)selectionMethods.Length);
+                writer.Write(Array.ConvertAll(selectionMethods, m => (byte)m));
+            }
+
+            return buffer;
+        }
+
+        protected Method UnpackHandshake(byte[] buffer, int numberOfBytesRead, Method[] selectionMethods) {
             // +-----+--------+
             // | VER | METHOD |
             // +-----+--------+
             // |  1  |   1    |
             // +-----+--------+
-            var receiveBuffer = new byte[2];
-            var numberOfBytesRead = _stream.Read(receiveBuffer, 0, receiveBuffer.Length);
+
             if (numberOfBytesRead < 2)
-                throw new ProtocolErrorException($"[Handshake] Server respond unknown message: {BitConverter.ToString(receiveBuffer, 0, numberOfBytesRead)}.");
+                throw new ProtocolErrorException($"Server respond unknown message: {BitConverter.ToString(buffer, 0, numberOfBytesRead)}.");
 
-            // Check result
-            var serverVersion = receiveBuffer[0];
+            var serverVersion = buffer[0];
             if (serverVersion != VERSION)
-                throw new ProtocolErrorException($"[Handshake] Server version isn't 5: 0x{serverVersion:X2}.");
+                throw new ProtocolErrorException($"Server version isn't 5: 0x{serverVersion:X2}.");
 
-            var serverMethod = (Method)receiveBuffer[1];
+            var serverMethod = (Method)buffer[1];
             if (!Enum.IsDefined(typeof(Method), serverMethod))
-                throw new ProtocolErrorException($"[Handshake] Server respond a unknown method: 0x{(byte)serverMethod:X2}.");
+                throw new ProtocolErrorException($"Server respond a unknown method: 0x{(byte)serverMethod:X2}.");
 
             if (!selectionMethods.Contains(serverMethod))
-                throw new MethodUnsupportedException($"[Handshake] Server respond a method({serverMethod}:0x{(byte)serverMethod:X2}) that is not in 'selectionMethods'.", serverMethod);
+                throw new MethodUnsupportedException($"Server respond a method({serverMethod}:0x{(byte)serverMethod:X2}) that is not in 'selectionMethods'.", serverMethod);
 
             return serverMethod;
         }
 
         protected void Authenticate(string username, string password) {
             // Send username and password
+            var sendBuffer = PackAuthentication(username, password);
+            _stream.Write(sendBuffer, 0, sendBuffer.Length);
+
+            // Receive reply
+            var receiveBuffer = new byte[2];
+            var numberOfBytesRead = _stream.Read(receiveBuffer, 0, receiveBuffer.Length);
+            UnpackAuthentication(receiveBuffer, numberOfBytesRead);
+        }
+
+        protected async Task AuthenticateAsync(string username, string password) {
+            // Send username and password
+            var sendBuffer = PackAuthentication(username, password);
+            await _stream.WriteAsync(sendBuffer, 0, sendBuffer.Length);
+
+            // Receive reply
+            var receiveBuffer = new byte[2];
+            var numberOfBytesRead = await _stream.ReadAsync(receiveBuffer, 0, receiveBuffer.Length);
+            UnpackAuthentication(receiveBuffer, numberOfBytesRead);
+        }
+
+        protected byte[] PackAuthentication(string username, string password) {
             // +-----+------+----------+------+----------+
             // | VER | ULEN |  UNAME   | PLEN |  PASSWD  |
             // +-----+------+----------+------+----------+
             // |  1  |  1   | 1 to 255 |  1   | 1 to 255 |
             // +-----+------+----------+------+----------+
+
             var u = Encoding.UTF8.GetBytes(username);
             if (u.Length > 255)
-                throw new InvalidOperationException("[Authenticate] The length of param 'username' that convert to bytes can not greater than 255.");
+                throw new InvalidOperationException("The length of param 'username' that convert to bytes can not greater than 255.");
 
             var p = Encoding.UTF8.GetBytes(password);
             if (p.Length > 255)
-                throw new InvalidOperationException("[Authenticate] The length of param 'password' that convert to bytes can not greater than 255.");
+                throw new InvalidOperationException("The length of param 'password' that convert to bytes can not greater than 255.");
 
-            var sendBuffer = new List<byte>();
-            sendBuffer.Add(AUTHENTICATION_VERSION);
-            sendBuffer.Add((byte)u.Length);
-            sendBuffer.AddRange(u);
-            sendBuffer.Add((byte)p.Length);
-            sendBuffer.AddRange(p);
+            var buffer = new byte[2 + u.Length + 1 + u.Length];
 
-            _stream.Write(sendBuffer.ToArray(), 0, sendBuffer.Count);
+            using (var stream = new MemoryStream(buffer))
+            using (var writer = new BinaryWriter(stream)) {
+                writer.Write(AUTHENTICATION_VERSION);
+                writer.Write((byte)u.Length);
+                writer.Write(u);
+                writer.Write((byte)p.Length);
+                writer.Write(p);
+            }
 
+            return buffer;
+        }
 
-            // Receive reply
+        protected void UnpackAuthentication(byte[] buffer, int numberOfBytesRead) {
             // +-----+--------+
             // | VER | STATUS |
             // +-----+--------+
             // |  1  |   1    |
             // +-----+--------+
-            var receiveBuffer = new byte[2];
-            var numberOfBytesRead = _stream.Read(receiveBuffer, 0, receiveBuffer.Length);
-            if (numberOfBytesRead < 2)
-                throw new ProtocolErrorException($"[Authenticate] Server respond unknown message: {BitConverter.ToString(receiveBuffer, 0, numberOfBytesRead)}.");
 
-            var status = receiveBuffer[1];
+            if (numberOfBytesRead < 2)
+                throw new ProtocolErrorException($"Server respond unknown message: {BitConverter.ToString(buffer, 0, numberOfBytesRead)}.");
+
+            var status = buffer[1];
             if (status != 0x00)
-                throw new AuthenticationFailureException($"[Authenticate] Authentication fail because server respond status code: {status}.", status);
+                throw new AuthenticationFailureException($"Authentication fail because server respond status code: {status}.", status);
         }
 
         protected void SendCommand(Command cmd, string destHostNameOrAddress, int destPort) {
-            if (cmd == Command.Bind)
-                throw new InvalidOperationException("Unsupport 'Bind' command yet.");
-
-            var type = GetAddressType(destHostNameOrAddress);
-
             // Send command
+            var sendBuffer = PackCommand(cmd, destHostNameOrAddress, destPort);
+            _stream.Write(sendBuffer, 0, sendBuffer.Length);
+
+            // Receive reply
+            var receiveBuffer = new byte[512];
+            var numberOfBytesRead = _stream.Read(receiveBuffer, 0, receiveBuffer.Length);
+            UnpackCommand(receiveBuffer, numberOfBytesRead, destHostNameOrAddress);
+        }
+
+        protected async Task SendCommandAsync(Command cmd, string destHostNameOrAddress, int destPort) {
+            // Send command
+            var sendBuffer = PackCommand(cmd, destHostNameOrAddress, destPort);
+            await _stream.WriteAsync(sendBuffer, 0, sendBuffer.Length);
+
+            // Receive reply
+            var receiveBuffer = new byte[512];
+            var numberOfBytesRead = await _stream.ReadAsync(receiveBuffer, 0, receiveBuffer.Length);
+            UnpackCommand(receiveBuffer, numberOfBytesRead, destHostNameOrAddress);
+        }
+
+        protected byte[] PackCommand(Command cmd, string destHostNameOrAddress, int destPort) {
             // +-----+-----+-------+------+----------+----------+
             // | VER | CMD |  RSV  | ATYP | DST.ADDR | DST.PORT |
             // +-----+-----+-------+------+----------+----------+
             // |  1  |  1  | X'00' |  1   | Variable |    2     |
             // +-----+-----+-------+------+----------+----------+
-            var sendBuffer = new List<byte>();
-            sendBuffer.Add(VERSION);
-            sendBuffer.Add((byte)cmd);
-            sendBuffer.Add(0x00);
-            sendBuffer.Add((byte)type);
-            switch (type) {
-                case AddressType.IPv4:
-                case AddressType.IPv6:
-                    sendBuffer.AddRange(IPAddress.Parse(destHostNameOrAddress).GetAddressBytes());
-                    break;
-                case AddressType.Domain:
-                    var hostNameBytes = Encoding.UTF8.GetBytes(destHostNameOrAddress);
-                    sendBuffer.Add((byte)hostNameBytes.Length);
-                    sendBuffer.AddRange(hostNameBytes);
-                    break;
-                default:
-                    throw new InvalidOperationException($"[SendCommand] Unsupported type: {type}.");
+
+            if (cmd == Command.Bind)
+                throw new InvalidOperationException("Unsupport 'Bind' command yet.");
+
+            var type = PackDestinationAddress(destHostNameOrAddress, out var addressBytes);
+
+            // 1 byte of domain name length followed by 1–255 bytes the domain name if destination address is a domain
+            var destAddressLength = addressBytes.Length + (type == AddressType.Domain ? 1 : 0);
+            var buffer = new byte[4 + destAddressLength + 2];
+
+            using (var stream = new MemoryStream(buffer))
+            using (var writer = new BinaryWriter(stream)) {
+                writer.Write(VERSION);
+                writer.Write((byte)cmd);
+                writer.Write(byte.MinValue);
+                writer.Write((byte)type);
+
+                switch (type) {
+                    case AddressType.IPv4:
+                    case AddressType.IPv6:
+                        writer.Write(addressBytes);
+                        break;
+                    case AddressType.Domain:
+                        writer.Write((byte)addressBytes.Length);
+                        writer.Write(addressBytes);
+                        break;
+                    default:
+                        throw new InvalidOperationException($"Unsupported type: {type}.");
+                }
+                writer.Write(IPAddress.HostToNetworkOrder((short)destPort));
             }
-            sendBuffer.AddRange(BitConverter.GetBytes(IPAddress.HostToNetworkOrder((short)destPort)));
-            _stream.Write(sendBuffer.ToArray(), 0, sendBuffer.Count);
 
+            return buffer;
+        }
 
-            // Receive reply
+        protected void UnpackCommand(byte[] buffer, int numberOfBytesRead, string destHostNameOrAddress) {
             // +-----+-----+-------+------+----------+----------+
             // | VER | REP |  RSV  | ATYP | BND.ADDR | BND.PORT |
             // +-----+-----+-------+------+----------+----------+
             // |  1  |  1  | X'00' |  1   | Variable |    2     |
-            // +-----+-----+-------+------+----------+----------+
-            const int numberOfFieldsBytesWithoutAddrPort = 4;
-            const int numberOfFieldsBytesWithoutAddr = 4 + 2;
+            // +-----+-----+-------+------+----------+----------+            
 
-            var receiveBuffer = new byte[512];
-            var numberOfBytesRead = _stream.Read(receiveBuffer, 0, receiveBuffer.Length);
+            using (var stream = new MemoryStream(buffer, 0, numberOfBytesRead))
+            using (var reader = new BinaryReader(stream)) {
+                try {
+                    var version = reader.ReadByte();
+                    if (version != VERSION)
+                        throw new ProtocolErrorException($"Server version isn't 5: 0x{version:X2}.");
 
-            if (numberOfBytesRead == 0)
-                throw new ProtocolErrorException($"[SendCommand] Server respond empty message.");
+                    var rep = (Reply)reader.ReadByte();
+                    if (rep != Reply.Successed)
+                        throw new CommandException($"Command failed, server reply: {rep}.", rep);
 
-            if (numberOfBytesRead < 2)
-                throw new ProtocolErrorException($"[SendCommand] Server respond unknown message: {BitConverter.ToString(receiveBuffer, 0, numberOfBytesRead)}.");
+                    // ignore RSV field
+                    reader.ReadByte();
 
-            if (receiveBuffer[0] != VERSION)
-                throw new ProtocolErrorException($"[SendCommand] Server version isn't 5: 0x{receiveBuffer[0]:X2}.");
+                    BoundType = (AddressType)reader.ReadByte();
 
-            var rep = (Reply)receiveBuffer[1];
-            if (rep != Reply.Successed)
-                throw new CommandException($"[SendCommand] Command failed, server reply: {rep}.", rep);
+                    switch (BoundType) {
+                        case AddressType.IPv4:
+                        case AddressType.IPv6: {
+                            var addressBytesCount = BoundType == AddressType.IPv4 ? 4 : 16;
+                            var addressBytes = reader.ReadBytes(addressBytesCount);
 
-            var replyType = (AddressType)receiveBuffer[3];
-            BoundType = replyType;
+                            if (addressBytes.Length != addressBytesCount)
+                                throw new ProtocolErrorException($"Server reply an error address, length: {addressBytes.Length}, bytes: {BitConverter.ToString(addressBytes)}");
 
-            switch (replyType) {
-                case AddressType.IPv4:
-                case AddressType.IPv6: {
-                        var numberOfAddressBytes = replyType == AddressType.IPv4 ? 4 : 16;
+                            BoundAddress = new IPAddress(addressBytes);
+                            if (_socksType == Command.UdpAssociate && (BoundAddress.Equals(IPAddress.Any) || BoundAddress.Equals(IPAddress.IPv6Any)))
+                                BoundAddress = IPAddress.Parse(destHostNameOrAddress);
 
-                        if (numberOfBytesRead < numberOfAddressBytes + numberOfFieldsBytesWithoutAddr)
-                            throw new ProtocolErrorException($"[SendCommand] Server respond unknown message: {BitConverter.ToString(receiveBuffer, 0, numberOfBytesRead)}.");
+                            break;
+                        }
 
-                        var addressBytes = new byte[numberOfAddressBytes];
-                        Buffer.BlockCopy(receiveBuffer, 4, addressBytes, 0, addressBytes.Length);
+                        case AddressType.Domain: {
+                            var numberOfDomainBytes = reader.ReadByte();
+                            var domainBytes = reader.ReadBytes(numberOfDomainBytes);
 
-                        BoundAddress = new IPAddress(addressBytes);
-                        if (_socksType == Command.UdpAssociate && (BoundAddress.Equals(IPAddress.Any) || BoundAddress.Equals(IPAddress.IPv6Any)))
-                            BoundAddress = IPAddress.Parse(destHostNameOrAddress);
+                            if (domainBytes.Length != numberOfDomainBytes)
+                                throw new ProtocolErrorException($"Server reply a error domain, length: {domainBytes.Length}, bytes: {BitConverter.ToString(domainBytes)}, domain: {Encoding.UTF8.GetString(domainBytes)}");
+
+                            BoundDomain = Encoding.UTF8.GetString(domainBytes);
+
+                            break;
+                        }
+                        default:
+                            throw new ProtocolErrorException($"Server reply an unsupported address type: {BoundType}.");
                     }
-                    break;
-                case AddressType.Domain: {
-                        if (numberOfBytesRead < numberOfFieldsBytesWithoutAddrPort + 1)
-                            throw new ProtocolErrorException($"[SendCommand] Server respond unknown message: {BitConverter.ToString(receiveBuffer, 0, numberOfBytesRead)}.");
 
-                        var numberOfDomainBytes = receiveBuffer[4];
-                        if (numberOfBytesRead < numberOfFieldsBytesWithoutAddr + numberOfDomainBytes + 1)
-                            throw new ProtocolErrorException($"[SendCommand] Server respond unknown message: {BitConverter.ToString(receiveBuffer, 0, numberOfBytesRead)}.");
+                    BoundPort = (ushort)IPAddress.NetworkToHostOrder(reader.ReadInt16());
 
-                        BoundDomain = Encoding.UTF8.GetString(receiveBuffer, 5, numberOfDomainBytes);
-                    }
-                    break;
-                default:
-                    throw new ProtocolErrorException($"[SendCommand] Server reply an unsupported address type: {replyType}.");
+                } catch (EndOfStreamException) {
+                    throw new ProtocolErrorException($"Server respond unknown message: {BitConverter.ToString(buffer, 0, numberOfBytesRead)}.");
+                }
             }
-
-            BoundPort = (ushort)IPAddress.NetworkToHostOrder(BitConverter.ToInt16(receiveBuffer, numberOfBytesRead - 2));
         }
 
         protected void CheckSocksType(Command allowedType) {
@@ -563,7 +850,7 @@ namespace SocklientDotNet {
         }
 
         protected void CheckUdpClient() {
-            if (_udpClient == null)
+            if (UDP == null)
                 throw new InvalidOperationException("This property is available after 'Socklient.UdpAssociate' success.");
         }
 
@@ -582,8 +869,20 @@ namespace SocklientDotNet {
             Closed
         }
 
-        public void Dispose() {
-            Close();
+        public void Dispose() => Close();
+    }
+
+    public readonly struct UdpReceivePacket {
+        public byte[] Buffer { get; }
+
+        public string RemoteHost { get; }
+
+        public int RemotePort { get; }
+
+        public UdpReceivePacket(byte[] buffer, string remoteHost, int remotePort) {
+            Buffer = buffer;
+            RemoteHost = remoteHost;
+            RemotePort = remotePort;
         }
     }
 }
