@@ -1,9 +1,9 @@
-<Project Sdk="Microsoft.NET.Sdk">
+﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFrameworks>netcoreapp2.0;net40</TargetFrameworks>
+    <TargetFrameworks>netcoreapp2.0;net45</TargetFrameworks>
     <RootNamespace>SocklientDotNet</RootNamespace>
-    <Version>1.1.2</Version>
+    <Version>2.0.0</Version>
     <PackageProjectUrl>https://github.com/GreatFireWall/Socklient</PackageProjectUrl>
     <Copyright />
     <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
@@ -14,12 +14,13 @@ Supported Socks5 Commands: Connect &amp; UDP Associate.</Description>
     <Authors>iFeng</Authors>
     <Company />
     <Product />
-    <PackageReleaseNotes>Add properties 'TCP' &amp; 'UDP' for more fine-grained control.</PackageReleaseNotes>
-    <AssemblyVersion>1.1.2.0</AssemblyVersion>
-    <FileVersion>1.1.2.0</FileVersion>
+    <PackageReleaseNotes>Supports async.</PackageReleaseNotes>
+    <AssemblyVersion>2.0.0.0</AssemblyVersion>
+    <FileVersion>2.0.0.0</FileVersion>
     <ApplicationIcon />
     <Win32Resource />
     <SignAssembly>false</SignAssembly>
+    <LangVersion>latest</LangVersion>
   </PropertyGroup>
 
   <PropertyGroup Condition="'$(Configuration)|$(TargetFramework)|$(Platform)'=='Debug|netcoreapp2.0|AnyCPU'">
