@@ -3,7 +3,7 @@
   <PropertyGroup>
     <TargetFrameworks>netcoreapp2.0;net45</TargetFrameworks>
     <RootNamespace>SocklientDotNet</RootNamespace>
-    <Version>2.0.2</Version>
+    <Version>2.0.3</Version>
     <PackageProjectUrl>https://github.com/GreatFireWall/Socklient</PackageProjectUrl>
     <Copyright />
     <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
@@ -16,8 +16,8 @@ Supported Socks5 Commands: Connect &amp; UDP Associate.</Description>
     <Product />
     <PackageReleaseNotes>Supports async operations.
 Add CancellationToken to TCP read/write async method for monitors cancellation requests.</PackageReleaseNotes>
-    <AssemblyVersion>2.0.2.0</AssemblyVersion>
-    <FileVersion>2.0.2.0</FileVersion>
+    <AssemblyVersion>2.0.3.0</AssemblyVersion>
+    <FileVersion>2.0.3.0</FileVersion>
     <ApplicationIcon />
     <Win32Resource />
     <SignAssembly>false</SignAssembly>

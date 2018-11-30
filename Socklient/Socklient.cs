@@ -109,7 +109,6 @@ namespace SocklientDotNet {
             _credential = credential;
 
             TCP = new TcpClient();
-            _stream = TCP.GetStream();
         }
 
         /// <summary>
@@ -119,6 +118,7 @@ namespace SocklientDotNet {
         /// <param name="destPort"></param>
         public void Connect(string destHostNameOrAddress, int destPort) {
             TCP.Connect(_socksServerHost, _socksServerPort);
+            _stream = TCP.GetStream();
 
             HandshakeAndAuthentication(_credential);
 
@@ -135,6 +135,7 @@ namespace SocklientDotNet {
         /// <param name="destPort"></param>
         public async Task ConnectAsync(string destHostNameOrAddress, int destPort) {
             await TCP.ConnectAsync(_socksServerHost, _socksServerPort);
+            _stream = TCP.GetStream();
 
             await HandshakeAndAuthenticationAsync(_credential);
 
@@ -152,6 +153,7 @@ namespace SocklientDotNet {
         /// <param name="srcPort"></param>
         public void UdpAssociate(string destHostNameOrAddress, int destPort, int srcPort = 0) {
             TCP.Connect(_socksServerHost, _socksServerPort);
+            _stream = TCP.GetStream();
 
             HandshakeAndAuthentication(_credential);
 
@@ -176,6 +178,7 @@ namespace SocklientDotNet {
         /// <param name="srcPort"></param>
         public async Task UdpAssociateAsync(string destHostNameOrAddress, int destPort, int srcPort = 0) {
             await TCP.ConnectAsync(_socksServerHost, _socksServerPort);
+            _stream = TCP.GetStream();
 
             await HandshakeAndAuthenticationAsync(_credential);
 
