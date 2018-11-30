@@ -18,7 +18,7 @@ namespace Example {
             // Tcp Example
             try {
                 // init with socks5 server information
-                var socklient = new Socklient(socks5ServerHostNameOrAddress, serverPort);
+                var socklient = new Socklient("127.0.0.1", 6666);
                 // you can pass a NetworkCredential contains username/password if socks server need a basic authencation
                 //var socklient = new Socklient(socks5ServerHostNameOrAddress, serverPort, new System.Net.NetworkCredential("user", "pwd"));
 
