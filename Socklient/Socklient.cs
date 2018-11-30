@@ -9,6 +9,7 @@ using System.Linq;
 using System.Net;
 using System.Net.Sockets;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace SocklientDotNet {
@@ -283,7 +284,20 @@ namespace SocklientDotNet {
         }
 
         /// <summary>
-        /// Reading bytes data used for TCP relay
+        /// Sending bytes data used for TCP relay as an asynchronous operation, and monitors cancellation requests
+        /// </summary>
+        /// <param name="buffer"></param>
+        /// <param name="offset"></param>
+        /// <param name="size"></param>
+        /// <param name="token"></param>
+        public Task WriteAsync(byte[] buffer, int offset, int size, CancellationToken token) {
+            CheckSocksType(Command.Connect);
+
+            return _stream.WriteAsync(buffer, offset, size, token);
+        }
+
+        /// <summary>
+        /// Reading bytes data used for TCP relay  as an asynchronous operation
         /// </summary>
         /// <param name="buffer"></param>
         /// <param name="offset"></param>
@@ -293,6 +307,20 @@ namespace SocklientDotNet {
             CheckSocksType(Command.Connect);
 
             return _stream.ReadAsync(buffer, offset, size);
+        }
+
+        /// <summary>
+        /// Reading bytes data used for TCP relay  as an asynchronous operation, and monitors cancellation requests
+        /// </summary>
+        /// <param name="buffer"></param>
+        /// <param name="offset"></param>
+        /// <param name="size"></param>
+        /// <param name="token"></param>
+        /// <returns></returns>
+        public Task<int> ReadAsync(byte[] buffer, int offset, int size, CancellationToken token) {
+            CheckSocksType(Command.Connect);
+
+            return _stream.ReadAsync(buffer, offset, size, token);
         }
         #endregion
 
