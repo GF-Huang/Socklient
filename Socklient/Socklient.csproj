@@ -14,7 +14,7 @@ Supported Socks5 Commands: Connect &amp; UDP Associate.</Description>
     <Authors>iFeng</Authors>
     <Company />
     <Product />
-    <PackageReleaseNotes>Supports async.</PackageReleaseNotes>
+    <PackageReleaseNotes>Supports async operations.</PackageReleaseNotes>
     <AssemblyVersion>2.0.0.0</AssemblyVersion>
     <FileVersion>2.0.0.0</FileVersion>
     <ApplicationIcon />
