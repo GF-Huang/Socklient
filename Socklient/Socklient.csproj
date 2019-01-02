@@ -3,7 +3,7 @@
   <PropertyGroup>
     <TargetFrameworks>netcoreapp2.0;net45</TargetFrameworks>
     <RootNamespace>SocklientDotNet</RootNamespace>
-    <Version>2.0.3</Version>
+    <Version>2.1.0</Version>
     <PackageProjectUrl>https://github.com/GreatFireWall/Socklient</PackageProjectUrl>
     <Copyright />
     <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
@@ -14,10 +14,10 @@ Supported Socks5 Commands: Connect &amp; UDP Associate.</Description>
     <Authors>iFeng</Authors>
     <Company />
     <Product />
-    <PackageReleaseNotes>Supports async operations.
-Add CancellationToken to TCP read/write async method for monitors cancellation requests.</PackageReleaseNotes>
-    <AssemblyVersion>2.0.3.0</AssemblyVersion>
-    <FileVersion>2.0.3.0</FileVersion>
+    <PackageReleaseNotes>Add a lot of methods with IPAddress parameter for reduce unnecessary conversions between strings and addresses.
+Add a few UDP Send methods with buffer region parameter (offset, bytes) for deduce unnecessary buffer copies of caller.</PackageReleaseNotes>
+    <AssemblyVersion>2.1.0.0</AssemblyVersion>
+    <FileVersion>2.1.0.0</FileVersion>
     <ApplicationIcon />
     <Win32Resource />
     <SignAssembly>false</SignAssembly>
