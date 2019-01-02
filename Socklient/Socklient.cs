@@ -82,47 +82,114 @@ namespace SocklientDotNet {
 
         string _socksServerHost;
         int _socksServerPort;
+        IPEndPoint _socksServerEndPoint;
         NetworkCredential _credential;
+
         NetworkStream _stream;
+
         Status _status = Status.Initial;
         Command _socksType;
+
         string _udpDestHost;
+        IPAddress _udpDestAddress;
         int _udpDestPort;
         #endregion
 
         /// <summary>
         /// Construct a socklient client with specified socks5 server
         /// </summary>
-        /// <param name="socks5ServerHost">Socks5 Server hostname or address</param>
+        /// <param name="socksServerHost">Socks5 Server hostname or address</param>
         /// <param name="port">socks5 protocol service port</param>
-        public Socklient(string socks5ServerHost, int port) : this(socks5ServerHost, port, null) { }
+        public Socklient(string socksServerHost, int port) : this(socksServerHost, port, null) { }
 
         /// <summary>
         /// Construct a socklient client with specified socks5 server that requires a basic username/password authentication
         /// </summary>
-        /// <param name="socks5ServerHost">Socks5 Server hostname or address</param>
+        /// <param name="socksServerHost">Socks5 Server hostname or address</param>
         /// <param name="port">socks5 protocol service port</param>
         /// <param name="credential">a simple credential contains username and password for authentication</param>
-        public Socklient(string socks5ServerHost, int port, NetworkCredential credential) {
-            _socksServerHost = socks5ServerHost;
+        public Socklient(string socksServerHost, int port, NetworkCredential credential) {
+            _socksServerHost = socksServerHost;
             _socksServerPort = port;
             _credential = credential;
 
-            TCP = new TcpClient();
+            if (IPAddress.TryParse(socksServerHost, out var address)) {
+                _socksServerEndPoint = new IPEndPoint(address, port);
+                TCP = new TcpClient(address.AddressFamily);
+
+            } else {
+                TCP = new TcpClient();
+            }
+        }
+
+        /// <summary>
+        /// Construct a socklient client with specified socks5 server
+        /// </summary>
+        /// <param name="socksServerAddress"></param>
+        /// <param name="port"></param>
+        public Socklient(IPAddress socksServerAddress, int port) : this(new IPEndPoint(socksServerAddress, port), null) { }
+
+        /// <summary>
+        /// Construct a socklient client with specified socks5 server that requires a basic username/password authentication
+        /// </summary>
+        /// <param name="socksServerAddress"></param>
+        /// <param name="port"></param>
+        /// <param name="credential"></param>
+        public Socklient(IPAddress socksServerAddress, int port, NetworkCredential credential) :
+            this(new IPEndPoint(socksServerAddress, port), credential) { }
+
+        /// <summary>
+        /// Construct a socklient client with specified socks5 server
+        /// </summary>
+        /// <param name="socksServerEndPoint"></param>
+        public Socklient(IPEndPoint socksServerEndPoint) : this(socksServerEndPoint, null) { }
+
+        /// <summary>
+        /// Construct a socklient client with specified socks5 server that requires a basic username/password authentication
+        /// </summary>
+        /// <param name="socksServerEndPoint"></param>
+        /// <param name="credential"></param>
+        public Socklient(IPEndPoint socksServerEndPoint, NetworkCredential credential) {
+            _socksServerEndPoint = socksServerEndPoint;
+            _credential = credential;
+
+            TCP = new TcpClient(socksServerEndPoint.AddressFamily);
         }
 
         /// <summary>
         /// Send a connect command to socks5 server for TCP relay
         /// </summary>
-        /// <param name="destHostNameOrAddress"></param>
-        /// <param name="destPort"></param>
-        public void Connect(string destHostNameOrAddress, int destPort) {
-            TCP.Connect(_socksServerHost, _socksServerPort);
+        /// <param name="destHost">The destination host you want to communicate via socks server</param>
+        /// <param name="destPort">The destination port of the host</param>
+        public void Connect(string destHost, int destPort) => Connect(destHost, null, destPort);
+
+        /// <summary>
+        /// Send a connect command to socks5 server for TCP relay
+        /// </summary>
+        /// <param name="destAddress">The destination address you want to communicate via socks server</param>
+        /// <param name="destPort">The destination port of the host</param>
+        public void Connect(IPAddress destAddress, int destPort) => Connect(null, destAddress, destPort);
+
+        /// <summary>
+        /// Connect internal implementation
+        /// </summary>
+        /// <param name="destHost">The destination host you want to communicate via socks server</param>
+        /// <param name="destAddress">The destination address you want to communicate via socks server</param>
+        /// <param name="destPort">The destination port of the host</param>
+        protected void Connect(string destHost, IPAddress destAddress, int destPort) {
+            if (_status != Status.Initial)
+                throw new InvalidOperationException("This instance already connected.");
+
+            if (_socksServerEndPoint != null)
+                TCP.Connect(_socksServerEndPoint);
+            else
+                TCP.Connect(_socksServerHost, _socksServerPort);
+
             _stream = TCP.GetStream();
 
             HandshakeAndAuthentication(_credential);
 
-            SendCommand(Command.Connect, destHostNameOrAddress, destPort);
+            SendCommand(Command.Connect, destHost, destAddress, destPort);
 
             _socksType = Command.Connect;
             _status = Status.Initialized;
@@ -131,15 +198,39 @@ namespace SocklientDotNet {
         /// <summary>
         /// Send a connect command to socks5 server for TCP relay as an asynchronous operation
         /// </summary>
-        /// <param name="destHostNameOrAddress"></param>
-        /// <param name="destPort"></param>
-        public async Task ConnectAsync(string destHostNameOrAddress, int destPort) {
-            await TCP.ConnectAsync(_socksServerHost, _socksServerPort);
+        /// <param name="destHost">The destination host you want to communicate via socks server</param>
+        /// <param name="destPort">The destination port of the host</param>
+        public Task ConnectAsync(string destHost, int destPort) => ConnectAsync(destHost, null, destPort);
+
+        /// <summary>
+        /// Send a connect command to socks5 server for TCP relay as an asynchronous operation
+        /// </summary>
+        /// <param name="destAddress">The destination host you want to communicate via socks server</param>
+        /// <param name="destPort">The destination port of the host</param>
+        /// <returns></returns>
+        public Task ConnectAsync(IPAddress destAddress, int destPort) => ConnectAsync(null, destAddress, destPort);
+
+        /// <summary>
+        /// ConnectAsync internal implementation
+        /// </summary>
+        /// <param name="destHost">The destination host you want to communicate via socks server</param>
+        /// <param name="destAddress">The destination address you want to communicate via socks server</param>
+        /// <param name="destPort">The destination port of the host</param>
+        /// <returns></returns>
+        protected async Task ConnectAsync(string destHost, IPAddress destAddress, int destPort) {
+            if (_status != Status.Initial)
+                throw new InvalidOperationException("This instance already connected.");
+
+            if (_socksServerEndPoint != null)
+                await TCP.ConnectAsync(_socksServerEndPoint.Address, _socksServerEndPoint.Port);
+            else
+                await TCP.ConnectAsync(_socksServerHost, _socksServerPort);
+
             _stream = TCP.GetStream();
 
             await HandshakeAndAuthenticationAsync(_credential);
 
-            await SendCommandAsync(Command.Connect, destHostNameOrAddress, destPort);
+            await SendCommandAsync(Command.Connect, destHost, destAddress, destPort);
 
             _socksType = Command.Connect;
             _status = Status.Initialized;
@@ -148,23 +239,60 @@ namespace SocklientDotNet {
         /// <summary>
         /// Send a udp associate command to socks5 server for UDP relay
         /// </summary>
-        /// <param name="destHostNameOrAddress"></param>
-        /// <param name="destPort"></param>
-        /// <param name="srcPort"></param>
-        public void UdpAssociate(string destHostNameOrAddress, int destPort, int srcPort = 0) {
-            TCP.Connect(_socksServerHost, _socksServerPort);
+        /// <param name="destHost">The destination host you want to communicate via socks server</param>
+        /// <param name="destPort">The destination port of the host</param>
+        /// <param name="srcPort">The local port for communication with socks server</param>
+        public void UdpAssociate(string destHost, int destPort, int srcPort = 0) => UdpAssociate(destHost, null, destPort, srcPort);
+
+        /// <summary>
+        /// Send a udp associate command to socks5 server for UDP relay
+        /// </summary>
+        /// <param name="destAddress">The destination address you want to communicate via socks server</param>
+        /// <param name="destPort">The destination port of the host</param>
+        /// <param name="srcPort">The local port for communication with socks server</param>
+        public void UdpAssociate(IPAddress destAddress, int destPort, int srcPort = 0) => UdpAssociate(null, destAddress, destPort, srcPort);
+
+        /// <summary>
+        /// UdpAssociate internal implementation
+        /// </summary>
+        /// <param name="destHost">The destination host you want to communicate via socks server</param>
+        /// <param name="destAddress">The destination address you want to communicate via socks server</param>
+        /// <param name="destPort">The destination port of the host</param>
+        /// <param name="srcPort">The local port for communication with socks server</param>
+        protected void UdpAssociate(string destHost, IPAddress destAddress, int destPort, int srcPort) {
+            if (_status != Status.Initial)
+                throw new InvalidOperationException("This instance already associated.");
+
+            if (_socksServerEndPoint != null)
+                TCP.Connect(_socksServerEndPoint);
+            else
+                TCP.Connect(_socksServerHost, _socksServerPort);
+
             _stream = TCP.GetStream();
 
             HandshakeAndAuthentication(_credential);
 
-            _udpDestHost = destHostNameOrAddress;
+            _udpDestHost = destHost;
+            _udpDestAddress = destAddress;
             _udpDestPort = destPort;
 
-            SendCommand(Command.UdpAssociate, _socksServerHost, srcPort);
+            // create udp client
+            UDP = new UdpClient(srcPort, destAddress?.AddressFamily ?? AddressFamily.InterNetwork);
+            if (srcPort == 0)
+                srcPort = ((IPEndPoint)UDP.Client.LocalEndPoint).Port;
 
-            UDP = new UdpClient(srcPort);
+            SendCommand(Command.UdpAssociate, _socksServerHost, _socksServerEndPoint.Address, srcPort);     
+            
             // Establishes a default remote host to socks server
-            UDP.Connect(BoundType == AddressType.Domain ? BoundDomain : BoundAddress.ToString(), BoundPort);
+            if (BoundType == AddressType.Domain)
+                UDP.Connect(BoundDomain, BoundPort);
+            else {
+                // if BoundAddress is any (0.0.0.0 or ::), change it to socks server
+                if (BoundAddress.Equals(IPAddress.Any) || BoundAddress.Equals(IPAddress.IPv6Any))
+                    BoundAddress = _socksServerEndPoint?.Address ?? IPAddress.Parse(_socksServerHost);
+
+                UDP.Connect(BoundAddress, BoundPort);
+            }
 
             _socksType = Command.UdpAssociate;
             _status = Status.Initialized;
@@ -173,23 +301,63 @@ namespace SocklientDotNet {
         /// <summary>
         /// Send a udp associate command to socks5 server for UDP relay as an asynchronous operation
         /// </summary>
-        /// <param name="destHostNameOrAddress"></param>
-        /// <param name="destPort"></param>
-        /// <param name="srcPort"></param>
-        public async Task UdpAssociateAsync(string destHostNameOrAddress, int destPort, int srcPort = 0) {
-            await TCP.ConnectAsync(_socksServerHost, _socksServerPort);
+        /// <param name="destHost">The destination host you want to communicate via socks server</param>
+        /// <param name="destPort">The destination port of the host</param>
+        /// <param name="srcPort">The local port for communication with socks server</param>
+        public Task UdpAssociateAsync(string destHost, int destPort, int srcPort = 0) => UdpAssociateAsync(destHost, null, destPort, srcPort);
+
+        /// <summary>
+        /// Send a udp associate command to socks5 server for UDP relay as an asynchronous operation
+        /// </summary>
+        /// <param name="destAddress">The destination address you want to communicate via socks server</param>
+        /// <param name="destPort">The destination port of the host</param>
+        /// <param name="srcPort">The local port for communication with socks server</param>
+        /// <returns></returns>
+        public Task UdpAssociateAsync(IPAddress destAddress, int destPort, int srcPort = 0) => 
+            UdpAssociateAsync(null, destAddress, destPort, srcPort);
+
+        /// <summary>
+        /// UdpAssociateAsync internal implementation
+        /// </summary>
+        /// <param name="destHost">The destination host you want to communicate via socks server</param>
+        /// <param name="destAddress">The destination address you want to communicate via socks server</param>
+        /// <param name="destPort">The destination port of the host</param>
+        /// <param name="srcPort">The local port for communication with socks server</param>
+        /// <returns></returns>
+        protected async Task UdpAssociateAsync(string destHost, IPAddress destAddress, int destPort, int srcPort) {
+            if (_status != Status.Initial)
+                throw new InvalidOperationException("This instance already associated.");
+
+            if (_socksServerEndPoint != null)
+                await TCP.ConnectAsync(_socksServerEndPoint.Address, _socksServerEndPoint.Port);
+            else
+                await TCP.ConnectAsync(_socksServerHost, _socksServerPort);
+
             _stream = TCP.GetStream();
 
             await HandshakeAndAuthenticationAsync(_credential);
 
-            _udpDestHost = destHostNameOrAddress;
+            _udpDestHost = destHost;
+            _udpDestAddress = destAddress;
             _udpDestPort = destPort;
 
-            await SendCommandAsync(Command.UdpAssociate, _socksServerHost, srcPort);
+            // create udp client
+            UDP = new UdpClient(srcPort, destAddress?.AddressFamily ?? AddressFamily.InterNetwork);
+            if (srcPort == 0)
+                srcPort = ((IPEndPoint)UDP.Client.LocalEndPoint).Port;
 
-            UDP = new UdpClient(srcPort);
+            await SendCommandAsync(Command.UdpAssociate, _socksServerHost, _socksServerEndPoint.Address, srcPort);
+
             // Establishes a default remote host to socks server
-            UDP.Connect(BoundType == AddressType.Domain ? BoundDomain : BoundAddress.ToString(), BoundPort);
+            if (BoundType == AddressType.Domain)
+                UDP.Connect(BoundDomain, BoundPort);
+            else {
+                // if BoundAddress is any (0.0.0.0 or ::), change it to socks server
+                if (BoundAddress.Equals(IPAddress.Any) || BoundAddress.Equals(IPAddress.IPv6Any))
+                    BoundAddress = _socksServerEndPoint?.Address ?? IPAddress.Parse(_socksServerHost);
+
+                UDP.Connect(BoundAddress, BoundPort);
+            }
 
             _socksType = Command.UdpAssociate;
             _status = Status.Initialized;
@@ -335,49 +503,98 @@ namespace SocklientDotNet {
         /// </summary>
         /// <param name="str"></param>
         /// <returns></returns>
-        public int Send(string str) {
-            return Send(Encoding.UTF8.GetBytes(str));
-        }
+        public int Send(string str) => Send(Encoding.UTF8.GetBytes(str));
 
         /// <summary>
         /// Sending string data to a different host:port that you associate via 'Socklient.UdpAssociate' previously
-        /// <para>It makes "Port-Restricted cone NAT", "Address-Restricted cone NAT" and "Full cone NAT" become possible</para>
+        /// <para>This method makes "Port-Restricted cone NAT", "Address-Restricted cone NAT" and "Full cone NAT" become possible</para>
         /// </summary>
         /// <param name="str"></param>
-        /// <param name="destHostNameOrAddress"></param>
+        /// <param name="destHost"></param>
         /// <param name="destPort"></param>
         /// <returns></returns>
-        public int Send(string str, string destHostNameOrAddress, int destPort) {
-            return Send(Encoding.UTF8.GetBytes(str), destHostNameOrAddress, destPort);
-        }
+        public int Send(string str, string destHost, int destPort) => Send(Encoding.UTF8.GetBytes(str), destHost, destPort);
+
+        /// <summary>
+        /// Sending user datagram to a different host:port that you associate via 'Socklient.UdpAssociate' previously
+        /// <para>This method makes "Port-Restricted cone NAT", "Address-Restricted cone NAT" and "Full cone NAT" become possible</para>
+        /// </summary>
+        /// <param name="str"></param>
+        /// <param name="destAddress"></param>
+        /// <param name="destPort"></param>
+        /// <returns></returns>
+        public int Send(string str, IPAddress destAddress, int destPort) => Send(Encoding.UTF8.GetBytes(str), destAddress, destPort);
 
         /// <summary>
         /// Sending user datagram used for UDP relay
         /// </summary>
         /// <param name="datagram"></param>
         /// <returns>Sent bytes count</returns>
-        public int Send(byte[] datagram) {
-            CheckSocksType(Command.UdpAssociate);
+        public int Send(byte[] datagram) => Send(datagram, 0, datagram.Length, _udpDestHost, _udpDestAddress, _udpDestPort);
 
-            var packedDatagram = PackUdp(_udpDestHost, _udpDestPort, datagram);
-            var headerLength = packedDatagram.Length - datagram.Length;
-
-            return UDP.Send(packedDatagram, packedDatagram.Length) - headerLength;
-        }
+        /// <summary>
+        /// Sending user datagram used for UDP relay
+        /// </summary>
+        /// <param name="datagramBuffer"></param>
+        /// <param name="offset"></param>
+        /// <param name="bytes"></param>
+        /// <returns></returns>
+        public int Send(byte[] datagramBuffer, int offset, int bytes) => 
+            Send(datagramBuffer, offset, bytes, _udpDestHost, _udpDestAddress, _udpDestPort);
 
         /// <summary>
         /// Sending user datagram to a different host:port that you associate via 'Socklient.UdpAssociate' previously
-        /// <para>It makes "Port-Restricted cone NAT", "Address-Restricted cone NAT" and "Full cone NAT" become possible</para>
+        /// <para>This method makes "Port-Restricted cone NAT", "Address-Restricted cone NAT" and "Full cone NAT" become possible</para>
         /// </summary>
         /// <param name="datagram"></param>
-        /// <param name="destHostNameOrAddress"></param>
+        /// <param name="destHost"></param>
         /// <param name="destPort"></param>
         /// <returns></returns>
-        public int Send(byte[] datagram, string destHostNameOrAddress, int destPort) {
+        public int Send(byte[] datagram, string destHost, int destPort) =>
+            Send(datagram, 0, datagram.Length, destHost, null, destPort);
+
+        /// <summary>
+        /// Sending user datagram to a different host:port that you associate via 'Socklient.UdpAssociate' previously
+        /// <para>This method makes "Port-Restricted cone NAT", "Address-Restricted cone NAT" and "Full cone NAT" become possible</para>
+        /// </summary>
+        /// <param name="datagramBuffer"></param>
+        /// <param name="offset"></param>
+        /// <param name="bytes"></param>
+        /// <param name="destHost"></param>
+        /// <param name="destPort"></param>
+        /// <returns></returns>
+        public int Send(byte[] datagramBuffer, int offset, int bytes, string destHost, int destPort) =>
+            Send(datagramBuffer, offset, bytes, destHost, null, destPort);
+
+        /// <summary>
+        /// Sending user datagram to a different host:port that you associate via 'Socklient.UdpAssociate' previously
+        /// <para>This method makes "Port-Restricted cone NAT", "Address-Restricted cone NAT" and "Full cone NAT" become possible</para>
+        /// </summary>
+        /// <param name="datagram"></param>
+        /// <param name="destAddress"></param>
+        /// <param name="destPort"></param>
+        /// <returns></returns>
+        public int Send(byte[] datagram, IPAddress destAddress, int destPort) =>
+            Send(datagram, 0, datagram.Length, null, destAddress, destPort);
+
+        /// <summary>
+        /// Sending user datagram to a different host:port that you associate via 'Socklient.UdpAssociate' previously
+        /// <para>This method makes "Port-Restricted cone NAT", "Address-Restricted cone NAT" and "Full cone NAT" become possible</para>
+        /// </summary>
+        /// <param name="datagramBuffer"></param>
+        /// <param name="offset"></param>
+        /// <param name="bytes"></param>
+        /// <param name="destAddress"></param>
+        /// <param name="destPort"></param>
+        /// <returns></returns>
+        public int Send(byte[] datagramBuffer, int offset, int bytes, IPAddress destAddress, int destPort) =>
+            Send(datagramBuffer, offset, bytes, null, destAddress, destPort);
+
+        protected int Send(byte[] datagramBuffer, int offset, int bytes, string destHost, IPAddress destAddress, int destPort) {
             CheckSocksType(Command.UdpAssociate);
 
-            var packedDatagram = PackUdp(destHostNameOrAddress, destPort, datagram);
-            var headerLength = packedDatagram.Length - datagram.Length;
+            var packedDatagram = PackUdp(destHost, destAddress, destPort, datagramBuffer, offset, bytes);
+            var headerLength = packedDatagram.Length - bytes;
 
             return UDP.Send(packedDatagram, packedDatagram.Length) - headerLength;
         }
@@ -420,39 +637,94 @@ namespace SocklientDotNet {
         /// <para>It makes "Port-Restricted cone NAT", "Address-Restricted cone NAT" and "Full cone NAT" become possible</para>
         /// </summary>
         /// <param name="str"></param>
-        /// <param name="destHostNameOrAddress"></param>
+        /// <param name="destHost"></param>
         /// <param name="destPort"></param>
         /// <returns></returns>
-        public Task<int> SendAsync(string str, string destHostNameOrAddress, int destPort) => 
-            SendAsync(Encoding.UTF8.GetBytes(str), destHostNameOrAddress, destPort);
+        public Task<int> SendAsync(string str, string destHost, int destPort) =>
+            SendAsync(Encoding.UTF8.GetBytes(str), destHost, destPort);
+
+        /// <summary>
+        /// As asynchronous operation, sending string data to a different host:port that you associate via 'Socklient.UdpAssociate' previously
+        /// <para>It makes "Port-Restricted cone NAT", "Address-Restricted cone NAT" and "Full cone NAT" become possible</para>
+        /// </summary>
+        /// <param name="str"></param>
+        /// <param name="destAddress"></param>
+        /// <param name="destPort"></param>
+        /// <returns></returns>
+        public Task<int> SendAsync(string str, IPAddress destAddress, int destPort) =>
+            SendAsync(Encoding.UTF8.GetBytes(str), destAddress, destPort);
 
         /// <summary>
         /// Sending user datagram used for UDP relay as an asynchronous operation
         /// </summary>
         /// <param name="datagram"></param>
         /// <returns>Sent bytes count</returns>
-        public async Task<int> SendAsync(byte[] datagram) {
-            CheckSocksType(Command.UdpAssociate);
+        public Task<int> SendAsync(byte[] datagram) => 
+            SendAsync(datagram, 0, datagram.Length, _udpDestHost, _udpDestAddress, _udpDestPort);
 
-            var packedDatagram = PackUdp(_udpDestHost, _udpDestPort, datagram);
-            var headerLength = packedDatagram.Length - datagram.Length;
-
-            return await UDP.SendAsync(packedDatagram, packedDatagram.Length) - headerLength;
-        }
+        /// <summary>
+        /// Sending user datagram used for UDP relay as an asynchronous operation
+        /// </summary>
+        /// <param name="datagramBuffer"></param>
+        /// <param name="offset"></param>
+        /// <param name="bytes"></param>
+        /// <returns></returns>
+        public Task<int> SendAsync(byte[] datagramBuffer, int offset, int bytes) =>
+            SendAsync(datagramBuffer, offset, bytes, _udpDestHost, _udpDestAddress, _udpDestPort);
 
         /// <summary>
         /// As asynchronous operation, sending user datagram to a different host:port that you associate via 'Socklient.UdpAssociate' previously
         /// <para>It makes "Port-Restricted cone NAT", "Address-Restricted cone NAT" and "Full cone NAT" become possible</para>
         /// </summary>
         /// <param name="datagram"></param>
-        /// <param name="destHostNameOrAddress"></param>
+        /// <param name="destHost"></param>
         /// <param name="destPort"></param>
         /// <returns></returns>
-        public async Task<int> SendAsync(byte[] datagram, string destHostNameOrAddress, int destPort) {
+        public Task<int> SendAsync(byte[] datagram, string destHost, int destPort) =>
+            SendAsync(datagram, 0, datagram.Length, destHost, null, destPort);
+
+        /// <summary>
+        /// As asynchronous operation, sending user datagram to a different host:port that you associate via 'Socklient.UdpAssociate' previously
+        /// <para>It makes "Port-Restricted cone NAT", "Address-Restricted cone NAT" and "Full cone NAT" become possible</para>
+        /// </summary>
+        /// <param name="datagramBuffer"></param>
+        /// <param name="offset"></param>
+        /// <param name="bytes"></param>
+        /// <param name="destHost"></param>
+        /// <param name="destPort"></param>
+        /// <returns></returns>
+        public Task<int> SendAsync(byte[] datagramBuffer, int offset, int bytes, string destHost, int destPort) =>
+            SendAsync(datagramBuffer, offset, bytes, destHost, null, destPort);
+
+        /// <summary>
+        /// As asynchronous operation, sending user datagram to a different host:port that you associate via 'Socklient.UdpAssociate' previously
+        /// <para>It makes "Port-Restricted cone NAT", "Address-Restricted cone NAT" and "Full cone NAT" become possible</para>
+        /// </summary>
+        /// <param name="datagram"></param>
+        /// <param name="destAddress"></param>
+        /// <param name="destPort"></param>
+        /// <returns></returns>
+        public Task<int> SendAsync(byte[] datagram, IPAddress destAddress, int destPort) =>
+            SendAsync(datagram, 0, datagram.Length, null, destAddress, destPort);
+
+        /// <summary>
+        /// As asynchronous operation, sending user datagram to a different host:port that you associate via 'Socklient.UdpAssociate' previously
+        /// <para>It makes "Port-Restricted cone NAT", "Address-Restricted cone NAT" and "Full cone NAT" become possible</para>
+        /// </summary>
+        /// <param name="datagramBuffer"></param>
+        /// <param name="offset"></param>
+        /// <param name="bytes"></param>
+        /// <param name="destAddress"></param>
+        /// <param name="destPort"></param>
+        /// <returns></returns>
+        public Task<int> SendAsync(byte[] datagramBuffer, int offset, int bytes, IPAddress destAddress, int destPort) =>
+            SendAsync(datagramBuffer, offset, bytes, null, destAddress, destPort);
+
+        protected async Task<int> SendAsync(byte[] datagramBuffer, int offset, int bytes, string destHost, IPAddress destAddress, int destPort) {
             CheckSocksType(Command.UdpAssociate);
 
-            var packedDatagram = PackUdp(destHostNameOrAddress, destPort, datagram);
-            var headerLength = packedDatagram.Length - datagram.Length;
+            var packedDatagram = PackUdp(destHost, destAddress, destPort, datagramBuffer, offset, bytes);
+            var headerLength = packedDatagram.Length - bytes;
 
             return await UDP.SendAsync(packedDatagram, packedDatagram.Length) - headerLength;
         }
@@ -506,23 +778,28 @@ namespace SocklientDotNet {
                 await AuthenticateAsync(credential.UserName, credential.Password);
         }
 
-        protected AddressType PackDestinationAddress(string hostNameOrAddress, out byte[] addressBytes) {
-            var isValid = IPAddress.TryParse(hostNameOrAddress, out var address);
-
+        protected AddressType PackDestinationAddress(string hostName, IPAddress address, out byte[] addressBytes) {
             AddressType addressType;
-            if (isValid) {
+            if (address != null) {
                 addressType = address.AddressFamily == AddressFamily.InterNetworkV6 ? AddressType.IPv6 : AddressType.IPv4;
                 addressBytes = address.GetAddressBytes();
 
             } else {
-                addressType = AddressType.Domain;
-                addressBytes = Encoding.UTF8.GetBytes(hostNameOrAddress);
+                var isValid = IPAddress.TryParse(hostName, out address);
+                if (isValid) {
+                    addressType = address.AddressFamily == AddressFamily.InterNetworkV6 ? AddressType.IPv6 : AddressType.IPv4;
+                    addressBytes = address.GetAddressBytes();
+
+                } else {
+                    addressType = AddressType.Domain;
+                    addressBytes = Encoding.UTF8.GetBytes(hostName);
+                }
             }
 
             return addressType;
         }
-
-        protected byte[] PackUdp(string destHostNameOrAddress, int destPort, byte[] payload) {
+        
+        protected byte[] PackUdp(string destHost, IPAddress destAddress, int destPort, byte[] payloadBuffer, int offset, int bytes) {
             // Add socks udp associate request header
             // +-----+------+------+----------+----------+----------+
             // | RSV | FRAG | ATYP | DST.ADDR | DST.PORT |   DATA   |
@@ -530,11 +807,11 @@ namespace SocklientDotNet {
             // |  2  |  1   |  1   | Variable |    2     | Variable |
             // +-----+------+------+----------+----------+----------+
 
-            var type = PackDestinationAddress(destHostNameOrAddress, out var addressBytes);
+            var type = PackDestinationAddress(destHost, destAddress, out var addressBytes);
 
             // 1 byte of domain name length followed by 1–255 bytes the domain name if destination address is a domain
             var destAddressLength = addressBytes.Length + (type == AddressType.Domain ? 1 : 0);
-            var buffer = new byte[4 + destAddressLength + 2 + payload.Length];
+            var buffer = new byte[4 + destAddressLength + 2 + bytes];
 
             using (var stream = new MemoryStream(buffer))
             using (var writer = new BinaryWriter(stream)) {
@@ -556,7 +833,7 @@ namespace SocklientDotNet {
                 }
 
                 writer.Write(IPAddress.HostToNetworkOrder((short)destPort));
-                writer.Write(payload);
+                writer.Write(payloadBuffer, offset, bytes);
             }
 
             return buffer;
@@ -750,29 +1027,29 @@ namespace SocklientDotNet {
                 throw new AuthenticationFailureException($"Authentication fail because server respond status code: {status}.", status);
         }
 
-        protected void SendCommand(Command cmd, string destHostNameOrAddress, int destPort) {
+        protected void SendCommand(Command cmd, string destHostNameOrAddress, IPAddress destAddress, int destPort) {
             // Send command
-            var sendBuffer = PackCommand(cmd, destHostNameOrAddress, destPort);
+            var sendBuffer = PackCommand(cmd, destHostNameOrAddress, destAddress, destPort);
             _stream.Write(sendBuffer, 0, sendBuffer.Length);
 
             // Receive reply
             var receiveBuffer = new byte[512];
             var numberOfBytesRead = _stream.Read(receiveBuffer, 0, receiveBuffer.Length);
-            UnpackCommand(receiveBuffer, numberOfBytesRead, destHostNameOrAddress);
+            UnpackCommand(receiveBuffer, numberOfBytesRead);
         }
 
-        protected async Task SendCommandAsync(Command cmd, string destHostNameOrAddress, int destPort) {
+        protected async Task SendCommandAsync(Command cmd, string destHostNameOrAddress, IPAddress destAddress, int destPort) {
             // Send command
-            var sendBuffer = PackCommand(cmd, destHostNameOrAddress, destPort);
+            var sendBuffer = PackCommand(cmd, destHostNameOrAddress, destAddress, destPort);
             await _stream.WriteAsync(sendBuffer, 0, sendBuffer.Length);
 
             // Receive reply
             var receiveBuffer = new byte[512];
             var numberOfBytesRead = await _stream.ReadAsync(receiveBuffer, 0, receiveBuffer.Length);
-            UnpackCommand(receiveBuffer, numberOfBytesRead, destHostNameOrAddress);
+            UnpackCommand(receiveBuffer, numberOfBytesRead);
         }
 
-        protected byte[] PackCommand(Command cmd, string destHostNameOrAddress, int destPort) {
+        protected byte[] PackCommand(Command cmd, string destHostNameOrAddress, IPAddress destAddress, int destPort) {
             // +-----+-----+-------+------+----------+----------+
             // | VER | CMD |  RSV  | ATYP | DST.ADDR | DST.PORT |
             // +-----+-----+-------+------+----------+----------+
@@ -782,7 +1059,7 @@ namespace SocklientDotNet {
             if (cmd == Command.Bind)
                 throw new InvalidOperationException("Unsupport 'Bind' command yet.");
 
-            var type = PackDestinationAddress(destHostNameOrAddress, out var addressBytes);
+            var type = PackDestinationAddress(destHostNameOrAddress, destAddress, out var addressBytes);
 
             // 1 byte of domain name length followed by 1–255 bytes the domain name if destination address is a domain
             var destAddressLength = addressBytes.Length + (type == AddressType.Domain ? 1 : 0);
@@ -813,7 +1090,7 @@ namespace SocklientDotNet {
             return buffer;
         }
 
-        protected void UnpackCommand(byte[] buffer, int numberOfBytesRead, string destHostNameOrAddress) {
+        protected void UnpackCommand(byte[] buffer, int numberOfBytesRead) {
             // +-----+-----+-------+------+----------+----------+
             // | VER | REP |  RSV  | ATYP | BND.ADDR | BND.PORT |
             // +-----+-----+-------+------+----------+----------+
@@ -846,9 +1123,6 @@ namespace SocklientDotNet {
                                 throw new ProtocolErrorException($"Server reply an error address, length: {addressBytes.Length}, bytes: {BitConverter.ToString(addressBytes)}");
 
                             BoundAddress = new IPAddress(addressBytes);
-                            if (_socksType == Command.UdpAssociate && (BoundAddress.Equals(IPAddress.Any) || BoundAddress.Equals(IPAddress.IPv6Any)))
-                                BoundAddress = IPAddress.Parse(destHostNameOrAddress);
-
                             break;
                         }
 

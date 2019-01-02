@@ -18,7 +18,7 @@ namespace Example {
             // Tcp Example
             try {
                 // init with socks5 server information
-                var socklient = new Socklient("127.0.0.1", 6666);
+                var socklient = new Socklient(socks5ServerHostNameOrAddress, serverPort);
                 // you can pass a NetworkCredential contains username/password if socks server need a basic authencation
                 //var socklient = new Socklient(socks5ServerHostNameOrAddress, serverPort, new System.Net.NetworkCredential("user", "pwd"));
 
@@ -49,7 +49,7 @@ namespace Example {
                 // you can pass a NetworkCredential contains username/password if socks server need a basic authencation
                 //var socklient = new Socklient(socks5ServerHostNameOrAddress, serverPort, new System.Net.NetworkCredential("user", "pwd"));
 
-                // find some udp service by yourself
+                // find some udp service by yourself, for example: UDP echo, DNS, etc...
                 targetHost = "anyhost.provide.udpservice";
                 // assign a service port
                 targetPort = 0;
