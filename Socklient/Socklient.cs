@@ -277,7 +277,7 @@ namespace SocklientDotNet {
             _udpDestPort = destPort;
 
             // create udp client
-            UDP = new UdpClient(srcPort, destAddress?.AddressFamily ?? AddressFamily.InterNetwork);
+            UDP = new UdpClient(srcPort, TCP.Client.AddressFamily);
             if (srcPort == 0)
                 srcPort = ((IPEndPoint)UDP.Client.LocalEndPoint).Port;
 
@@ -304,7 +304,8 @@ namespace SocklientDotNet {
         /// <param name="destHost">The destination host you want to communicate via socks server</param>
         /// <param name="destPort">The destination port of the host</param>
         /// <param name="srcPort">The local port for communication with socks server</param>
-        public Task UdpAssociateAsync(string destHost, int destPort, int srcPort = 0) => UdpAssociateAsync(destHost, null, destPort, srcPort);
+        public Task UdpAssociateAsync(string destHost, int destPort, int srcPort = 0) => 
+            UdpAssociateAsync(destHost, null, destPort, srcPort);
 
         /// <summary>
         /// Send a udp associate command to socks5 server for UDP relay as an asynchronous operation
@@ -342,7 +343,7 @@ namespace SocklientDotNet {
             _udpDestPort = destPort;
 
             // create udp client
-            UDP = new UdpClient(srcPort, destAddress?.AddressFamily ?? AddressFamily.InterNetwork);
+            UDP = new UdpClient(srcPort, TCP.Client.AddressFamily);
             if (srcPort == 0)
                 srcPort = ((IPEndPoint)UDP.Client.LocalEndPoint).Port;
 
