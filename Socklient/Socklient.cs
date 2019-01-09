@@ -22,19 +22,19 @@ namespace SocklientDotNet {
         /// <summary>
         /// ATYP
         /// </summary>
-        public AddressType BoundType { get; protected set; }
+        public AddressType BoundType { get; private set; }
         /// <summary>
         /// BND.ADDR, when ATYP is a Domain
         /// </summary>
-        public string BoundDomain { get; protected set; }
+        public string BoundDomain { get; private set; }
         /// <summary>
         /// BND.ADDR, when ATYP either IPv4 or IPv6
         /// </summary>
-        public IPAddress BoundAddress { get; protected set; }
+        public IPAddress BoundAddress { get; private set; }
         /// <summary>
         /// BND.PORT
         /// </summary>
-        public int BoundPort { get; protected set; }
+        public int BoundPort { get; private set; }
 
         /// <summary>
         /// Inner UdpClient timeout setting
@@ -79,6 +79,9 @@ namespace SocklientDotNet {
         const byte VERSION = 0x05;
         // Defines in RFC 1929
         const byte AUTHENTICATION_VERSION = 0x01;
+
+        const int IPv4AddressBytes = 4;
+        const int IPv6AddressBytes = 16;
 
         string _socksServerHost;
         int _socksServerPort;
@@ -176,7 +179,7 @@ namespace SocklientDotNet {
         /// <param name="destHost">The destination host you want to communicate via socks server</param>
         /// <param name="destAddress">The destination address you want to communicate via socks server</param>
         /// <param name="destPort">The destination port of the host</param>
-        protected void Connect(string destHost, IPAddress destAddress, int destPort) {
+        private void Connect(string destHost, IPAddress destAddress, int destPort) {
             if (_status != Status.Initial)
                 throw new InvalidOperationException("This instance already connected.");
 
@@ -217,7 +220,7 @@ namespace SocklientDotNet {
         /// <param name="destAddress">The destination address you want to communicate via socks server</param>
         /// <param name="destPort">The destination port of the host</param>
         /// <returns></returns>
-        protected async Task ConnectAsync(string destHost, IPAddress destAddress, int destPort) {
+        private async Task ConnectAsync(string destHost, IPAddress destAddress, int destPort) {
             if (_status != Status.Initial)
                 throw new InvalidOperationException("This instance already connected.");
 
@@ -259,7 +262,7 @@ namespace SocklientDotNet {
         /// <param name="destAddress">The destination address you want to communicate via socks server</param>
         /// <param name="destPort">The destination port of the host</param>
         /// <param name="srcPort">The local port for communication with socks server</param>
-        protected void UdpAssociate(string destHost, IPAddress destAddress, int destPort, int srcPort) {
+        private void UdpAssociate(string destHost, IPAddress destAddress, int destPort, int srcPort) {
             if (_status != Status.Initial)
                 throw new InvalidOperationException("This instance already associated.");
 
@@ -325,7 +328,7 @@ namespace SocklientDotNet {
         /// <param name="destPort">The destination port of the host</param>
         /// <param name="srcPort">The local port for communication with socks server</param>
         /// <returns></returns>
-        protected async Task UdpAssociateAsync(string destHost, IPAddress destAddress, int destPort, int srcPort) {
+        private async Task UdpAssociateAsync(string destHost, IPAddress destAddress, int destPort, int srcPort) {
             if (_status != Status.Initial)
                 throw new InvalidOperationException("This instance already associated.");
 
@@ -591,7 +594,7 @@ namespace SocklientDotNet {
         public int Send(byte[] datagramBuffer, int offset, int bytes, IPAddress destAddress, int destPort) =>
             Send(datagramBuffer, offset, bytes, null, destAddress, destPort);
 
-        protected int Send(byte[] datagramBuffer, int offset, int bytes, string destHost, IPAddress destAddress, int destPort) {
+        private int Send(byte[] datagramBuffer, int offset, int bytes, string destHost, IPAddress destAddress, int destPort) {
             CheckSocksType(Command.UdpAssociate);
 
             var packedDatagram = PackUdp(destHost, destAddress, destPort, datagramBuffer, offset, bytes);
@@ -610,18 +613,19 @@ namespace SocklientDotNet {
         /// Receiving datagram for UDP relay
         /// </summary>
         /// <returns></returns>
-        public byte[] Receive() => Receive(out _, out _);
+        public byte[] Receive() => Receive(out _, out _, out _);
 
         /// <summary>
         /// Receiving datagram with remote host info for UDP relay
         /// </summary>
         /// <param name="remoteHost">the host what you relay via socks5 server</param>
+        /// <param name="remoteAddress">the address of host what you relay via socks5 server</param>
         /// <param name="remotePort">the service port of host</param>
         /// <returns></returns>
-        public byte[] Receive(out string remoteHost, out int remotePort) {
+        public byte[] Receive(out string remoteHost, out IPAddress remoteAddress, out int remotePort) {
             CheckSocksType(Command.UdpAssociate);
 
-            return UnpackUdp(UDP.Receive(ref _remoteEndPoint), out remoteHost, out remotePort);
+            return UnpackUdp(UDP.Receive(ref _remoteEndPoint), out remoteHost, out remoteAddress, out remotePort);
         }
 
         // Async
@@ -721,7 +725,7 @@ namespace SocklientDotNet {
         public Task<int> SendAsync(byte[] datagramBuffer, int offset, int bytes, IPAddress destAddress, int destPort) =>
             SendAsync(datagramBuffer, offset, bytes, null, destAddress, destPort);
 
-        protected async Task<int> SendAsync(byte[] datagramBuffer, int offset, int bytes, string destHost, IPAddress destAddress, int destPort) {
+        private async Task<int> SendAsync(byte[] datagramBuffer, int offset, int bytes, string destHost, IPAddress destAddress, int destPort) {
             CheckSocksType(Command.UdpAssociate);
 
             var packedDatagram = PackUdp(destHost, destAddress, destPort, datagramBuffer, offset, bytes);
@@ -739,13 +743,13 @@ namespace SocklientDotNet {
 
             var result = await UDP.ReceiveAsync();
 
-            var buffer = UnpackUdp(result.Buffer, out var remoteHost, out var remotePort);
+            var buffer = UnpackUdp(result.Buffer, out var remoteHost, out var remoteAddress, out var remotePort);
 
-            return new UdpReceivePacket(buffer, remoteHost, remotePort);
+            return new UdpReceivePacket(buffer, remoteHost, remoteAddress, remotePort);
         }
         #endregion
 
-        protected void HandshakeAndAuthentication(NetworkCredential credential) {
+        private void HandshakeAndAuthentication(NetworkCredential credential) {
             if (_status == Status.Initialized)
                 throw new InvalidOperationException("Socklient has been initialized.");
 
@@ -762,7 +766,7 @@ namespace SocklientDotNet {
                 Authenticate(credential.UserName, credential.Password);
         }
 
-        protected async Task HandshakeAndAuthenticationAsync(NetworkCredential credential) {
+        private async Task HandshakeAndAuthenticationAsync(NetworkCredential credential) {
             if (_status == Status.Initialized)
                 throw new InvalidOperationException("Socklient has been initialized.");
 
@@ -779,7 +783,7 @@ namespace SocklientDotNet {
                 await AuthenticateAsync(credential.UserName, credential.Password);
         }
 
-        protected AddressType PackDestinationAddress(string hostName, IPAddress address, out byte[] addressBytes) {
+        private AddressType PackDestinationAddress(string hostName, IPAddress address, out byte[] addressBytes) {
             AddressType addressType;
             if (address != null) {
                 addressType = address.AddressFamily == AddressFamily.InterNetworkV6 ? AddressType.IPv6 : AddressType.IPv4;
@@ -800,7 +804,7 @@ namespace SocklientDotNet {
             return addressType;
         }
         
-        protected byte[] PackUdp(string destHost, IPAddress destAddress, int destPort, byte[] payloadBuffer, int offset, int bytes) {
+        private byte[] PackUdp(string destHost, IPAddress destAddress, int destPort, byte[] payloadBuffer, int offset, int bytes) {
             // Add socks udp associate request header
             // +-----+------+------+----------+----------+----------+
             // | RSV | FRAG | ATYP | DST.ADDR | DST.PORT |   DATA   |
@@ -840,7 +844,7 @@ namespace SocklientDotNet {
             return buffer;
         }
 
-        protected byte[] UnpackUdp(byte[] buffer, out string remoteHost, out int remotePort) {
+        private byte[] UnpackUdp(byte[] buffer, out string remoteHost, out IPAddress remoteAddress, out int remotePort) {
             // Remove socks udp associate reply header
             // +-----+------+------+----------+----------+----------+
             // | RSV | FRAG | ATYP | DST.ADDR | DST.PORT |   DATA   |
@@ -865,17 +869,19 @@ namespace SocklientDotNet {
                             throw new ProtocolErrorException($"Server reply a error domain, length: {domainBytes.Length}, bytes: {BitConverter.ToString(domainBytes)}, domain: {Encoding.UTF8.GetString(domainBytes)}");
 
                         remoteHost = Encoding.UTF8.GetString(domainBytes);
+                        remoteAddress = null;
 
                         addressLength = domainBytesCount;
 
                     } else {
-                        var addressBytesCount = type == AddressType.IPv4 ? 4 : 16;
+                        var addressBytesCount = type == AddressType.IPv4 ? IPv4AddressBytes : IPv6AddressBytes;
                         var addressBytes = reader.ReadBytes(addressBytesCount);
 
                         if (addressBytes.Length != addressBytesCount)
                             throw new ProtocolErrorException($"Server reply an error address, length: {addressBytes.Length}, bytes: {BitConverter.ToString(addressBytes)}");
 
-                        remoteHost = new IPAddress(addressBytes).ToString();
+                        remoteHost = null;
+                        remoteAddress = new IPAddress(addressBytes);
 
                         addressLength = addressBytesCount;
                     }
@@ -892,7 +898,7 @@ namespace SocklientDotNet {
             }
         }
 
-        protected Method Handshake(params Method[] selectionMethods) {
+        private Method Handshake(params Method[] selectionMethods) {
             // Send version and methods
             var sendBuffer = PackHandshake(selectionMethods);
             _stream.Write(sendBuffer, 0, sendBuffer.Length);
@@ -904,7 +910,7 @@ namespace SocklientDotNet {
             return UnpackHandshake(receiveBuffer, numberOfBytesRead, selectionMethods);
         }
 
-        protected async Task<Method> HandshakeAsync(params Method[] selectionMethods) {
+        private async Task<Method> HandshakeAsync(params Method[] selectionMethods) {
             // Send version and methods
             var sendBuffer = PackHandshake(selectionMethods);
             await _stream.WriteAsync(sendBuffer, 0, sendBuffer.Length);
@@ -916,7 +922,7 @@ namespace SocklientDotNet {
             return UnpackHandshake(receiveBuffer, numberOfBytesRead, selectionMethods);
         }
 
-        protected byte[] PackHandshake(params Method[] selectionMethods) {
+        private byte[] PackHandshake(params Method[] selectionMethods) {
             // +-----+----------+----------+
             // | VER | NMETHODS | METHODS  |
             // +-----+----------+----------+
@@ -938,7 +944,7 @@ namespace SocklientDotNet {
             return buffer;
         }
 
-        protected Method UnpackHandshake(byte[] buffer, int numberOfBytesRead, Method[] selectionMethods) {
+        private Method UnpackHandshake(byte[] buffer, int numberOfBytesRead, Method[] selectionMethods) {
             // +-----+--------+
             // | VER | METHOD |
             // +-----+--------+
@@ -962,7 +968,7 @@ namespace SocklientDotNet {
             return serverMethod;
         }
 
-        protected void Authenticate(string username, string password) {
+        private void Authenticate(string username, string password) {
             // Send username and password
             var sendBuffer = PackAuthentication(username, password);
             _stream.Write(sendBuffer, 0, sendBuffer.Length);
@@ -973,7 +979,7 @@ namespace SocklientDotNet {
             UnpackAuthentication(receiveBuffer, numberOfBytesRead);
         }
 
-        protected async Task AuthenticateAsync(string username, string password) {
+        private async Task AuthenticateAsync(string username, string password) {
             // Send username and password
             var sendBuffer = PackAuthentication(username, password);
             await _stream.WriteAsync(sendBuffer, 0, sendBuffer.Length);
@@ -984,7 +990,7 @@ namespace SocklientDotNet {
             UnpackAuthentication(receiveBuffer, numberOfBytesRead);
         }
 
-        protected byte[] PackAuthentication(string username, string password) {
+        private byte[] PackAuthentication(string username, string password) {
             // +-----+------+----------+------+----------+
             // | VER | ULEN |  UNAME   | PLEN |  PASSWD  |
             // +-----+------+----------+------+----------+
@@ -1013,7 +1019,7 @@ namespace SocklientDotNet {
             return buffer;
         }
 
-        protected void UnpackAuthentication(byte[] buffer, int numberOfBytesRead) {
+        private void UnpackAuthentication(byte[] buffer, int numberOfBytesRead) {
             // +-----+--------+
             // | VER | STATUS |
             // +-----+--------+
@@ -1028,7 +1034,7 @@ namespace SocklientDotNet {
                 throw new AuthenticationFailureException($"Authentication fail because server respond status code: {status}.", status);
         }
 
-        protected void SendCommand(Command cmd, string destHostNameOrAddress, IPAddress destAddress, int destPort) {
+        private void SendCommand(Command cmd, string destHostNameOrAddress, IPAddress destAddress, int destPort) {
             // Send command
             var sendBuffer = PackCommand(cmd, destHostNameOrAddress, destAddress, destPort);
             _stream.Write(sendBuffer, 0, sendBuffer.Length);
@@ -1039,7 +1045,7 @@ namespace SocklientDotNet {
             UnpackCommand(receiveBuffer, numberOfBytesRead);
         }
 
-        protected async Task SendCommandAsync(Command cmd, string destHostNameOrAddress, IPAddress destAddress, int destPort) {
+        private async Task SendCommandAsync(Command cmd, string destHostNameOrAddress, IPAddress destAddress, int destPort) {
             // Send command
             var sendBuffer = PackCommand(cmd, destHostNameOrAddress, destAddress, destPort);
             await _stream.WriteAsync(sendBuffer, 0, sendBuffer.Length);
@@ -1050,7 +1056,7 @@ namespace SocklientDotNet {
             UnpackCommand(receiveBuffer, numberOfBytesRead);
         }
 
-        protected byte[] PackCommand(Command cmd, string destHostNameOrAddress, IPAddress destAddress, int destPort) {
+        private byte[] PackCommand(Command cmd, string destHostNameOrAddress, IPAddress destAddress, int destPort) {
             // +-----+-----+-------+------+----------+----------+
             // | VER | CMD |  RSV  | ATYP | DST.ADDR | DST.PORT |
             // +-----+-----+-------+------+----------+----------+
@@ -1091,7 +1097,7 @@ namespace SocklientDotNet {
             return buffer;
         }
 
-        protected void UnpackCommand(byte[] buffer, int numberOfBytesRead) {
+        private void UnpackCommand(byte[] buffer, int numberOfBytesRead) {
             // +-----+-----+-------+------+----------+----------+
             // | VER | REP |  RSV  | ATYP | BND.ADDR | BND.PORT |
             // +-----+-----+-------+------+----------+----------+
@@ -1117,7 +1123,7 @@ namespace SocklientDotNet {
                     switch (BoundType) {
                         case AddressType.IPv4:
                         case AddressType.IPv6: {
-                            var addressBytesCount = BoundType == AddressType.IPv4 ? 4 : 16;
+                            var addressBytesCount = BoundType == AddressType.IPv4 ? IPv4AddressBytes : IPv6AddressBytes;
                             var addressBytes = reader.ReadBytes(addressBytesCount);
 
                             if (addressBytes.Length != addressBytesCount)
@@ -1150,12 +1156,12 @@ namespace SocklientDotNet {
             }
         }
 
-        protected void CheckSocksType(Command allowedType) {
+        private void CheckSocksType(Command allowedType) {
             if (_socksType != allowedType)
                 throw new InvalidOperationException($"This method only available where socklient under {allowedType} mode");
         }
 
-        protected void CheckUdpClient() {
+        private void CheckUdpClient() {
             if (UDP == null)
                 throw new InvalidOperationException("This property is available after 'Socklient.UdpAssociate' success.");
         }
@@ -1183,11 +1189,14 @@ namespace SocklientDotNet {
 
         public string RemoteHost { get; }
 
+        public IPAddress RemoteAddress { get; }
+
         public int RemotePort { get; }
 
-        public UdpReceivePacket(byte[] buffer, string remoteHost, int remotePort) {
+        public UdpReceivePacket(byte[] buffer, string remoteHost, IPAddress remoteAddress, int remotePort) {
             Buffer = buffer;
             RemoteHost = remoteHost;
+            RemoteAddress = remoteAddress;
             RemotePort = remotePort;
         }
     }
