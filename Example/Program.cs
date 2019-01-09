@@ -70,7 +70,7 @@ namespace Example {
                 // socklient.Send(new byte[] { 1, 2, 3, 4 }, "anotherhost.what.you.want", 5555);
 
                 // receive data and remote host information that sent back data to socks5 server
-                var received = BitConverter.ToString(socklient.Receive(out var remoteHost, out int remotePort));
+                var received = BitConverter.ToString(socklient.Receive(out var remoteHost, out var remoteAddress, out var remotePort));
                 Console.WriteLine($"Receive from {remoteHost}:{remotePort} {received}" );
 
                 socklient.Close();
