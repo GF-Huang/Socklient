@@ -59,7 +59,7 @@ try {
     // you can pass a NetworkCredential contains username/password if socks server need a basic authencation
     //var socklient = new Socklient(socks5ServerHostNameOrAddress, serverPort, new System.Net.NetworkCredential("user", "pwd"));
 
-    // find some udp service by yourself
+    // find some udp service by yourself, for example: UDP echo, DNS, etc...
     targetHost = "anyhost.provide.udpservice";
     // assign a service port
     targetPort = 0;
@@ -67,7 +67,6 @@ try {
     // tell socks server do udp relay to targethost:targetport.
     // the last argument srcPort means socklient use localport 10000 to communicate with socks server, you can assign 0 if you dont care
     socklient.UdpAssociate(targetHost, targetPort, 10000);
-
     // set timeout for receive
     socklient.UDP.Client.ReceiveTimeout = 5000;
 
@@ -75,13 +74,13 @@ try {
 
     // send data via socks5 server
     socklient.Send(new byte[] { 1, 2, 3, 4 });
-    
+
     // also, you can send to a different host:port 
     // for all kinds of Nat (Port-Restricted cone NAT, Address-Restricted cone NAT, Full cone NAT, etc...)
     // socklient.Send(new byte[] { 1, 2, 3, 4 }, "anotherhost.what.you.want", 5555);
 
     // receive data and remote host information that sent back data to socks5 server
-    var received = BitConverter.ToString(socklient.Receive(out var remoteHost, out int remotePort));
+    var received = BitConverter.ToString(socklient.Receive(out var remoteHost, out var remoteAddress, out var remotePort));
     Console.WriteLine($"Receive from {remoteHost}:{remotePort} {received}" );
 
     socklient.Close();
