@@ -382,7 +382,7 @@ namespace SocklientDotNet {
             _status = Status.Closed;
         }
 
-        #region Use for Connect command        
+        #region Use for Connect Command        
         // Sync 
 
         /// <summary>
@@ -1184,7 +1184,7 @@ namespace SocklientDotNet {
         public void Dispose() => Close();
     }
 
-    public readonly struct UdpReceivePacket {
+    public class UdpReceivePacket {
         public byte[] Buffer { get; }
 
         public string RemoteHost { get; }
