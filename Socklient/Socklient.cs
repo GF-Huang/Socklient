@@ -75,6 +75,11 @@ namespace SocklientDotNet {
         /// </summary>
         public UdpClient UDP { get; private set; }
 
+        /// <summary>
+        /// Get current status of socklient.
+        /// </summary>
+        public SocksStatus Status { get; private set; } = SocksStatus.Initial;
+
         #region Internal Fields
         const byte VERSION = 0x05;
         // Defines in RFC 1929
@@ -90,7 +95,6 @@ namespace SocklientDotNet {
 
         NetworkStream _stream;
 
-        Status _status = Status.Initial;
         Command _socksType;
 
         string _udpDestHost;
@@ -180,7 +184,7 @@ namespace SocklientDotNet {
         /// <param name="destAddress">The destination address you want to communicate via socks server</param>
         /// <param name="destPort">The destination port of the host</param>
         private void Connect(string destHost, IPAddress destAddress, int destPort) {
-            if (_status != Status.Initial)
+            if (Status != SocksStatus.Initial)
                 throw new InvalidOperationException("This instance already connected.");
 
             if (_socksServerEndPoint != null)
@@ -195,7 +199,7 @@ namespace SocklientDotNet {
             SendCommand(Command.Connect, destHost, destAddress, destPort);
 
             _socksType = Command.Connect;
-            _status = Status.Initialized;
+            Status = SocksStatus.Initialized;
         }
 
         /// <summary>
@@ -221,7 +225,7 @@ namespace SocklientDotNet {
         /// <param name="destPort">The destination port of the host</param>
         /// <returns></returns>
         private async Task ConnectAsync(string destHost, IPAddress destAddress, int destPort) {
-            if (_status != Status.Initial)
+            if (Status != SocksStatus.Initial)
                 throw new InvalidOperationException("This instance already connected.");
 
             if (_socksServerEndPoint != null)
@@ -236,7 +240,7 @@ namespace SocklientDotNet {
             await SendCommandAsync(Command.Connect, destHost, destAddress, destPort);
 
             _socksType = Command.Connect;
-            _status = Status.Initialized;
+            Status = SocksStatus.Initialized;
         }
 
         /// <summary>
@@ -263,7 +267,7 @@ namespace SocklientDotNet {
         /// <param name="destPort">The destination port of the host</param>
         /// <param name="srcPort">The local port for communication with socks server</param>
         private void UdpAssociate(string destHost, IPAddress destAddress, int destPort, int srcPort) {
-            if (_status != Status.Initial)
+            if (Status != SocksStatus.Initial)
                 throw new InvalidOperationException("This instance already associated.");
 
             if (_socksServerEndPoint != null)
@@ -298,7 +302,7 @@ namespace SocklientDotNet {
             }
 
             _socksType = Command.UdpAssociate;
-            _status = Status.Initialized;
+            Status = SocksStatus.Initialized;
         }
 
         /// <summary>
@@ -329,7 +333,7 @@ namespace SocklientDotNet {
         /// <param name="srcPort">The local port for communication with socks server</param>
         /// <returns></returns>
         private async Task UdpAssociateAsync(string destHost, IPAddress destAddress, int destPort, int srcPort) {
-            if (_status != Status.Initial)
+            if (Status != SocksStatus.Initial)
                 throw new InvalidOperationException("This instance already associated.");
 
             if (_socksServerEndPoint != null)
@@ -364,7 +368,7 @@ namespace SocklientDotNet {
             }
 
             _socksType = Command.UdpAssociate;
-            _status = Status.Initialized;
+            Status = SocksStatus.Initialized;
         }
 
         /// <summary>
@@ -379,7 +383,7 @@ namespace SocklientDotNet {
             TCP = null;
             UDP = null;
 
-            _status = Status.Closed;
+            Status = SocksStatus.Closed;
         }
 
         #region Use for Connect Command        
@@ -750,10 +754,10 @@ namespace SocklientDotNet {
         #endregion
 
         private void HandshakeAndAuthentication(NetworkCredential credential) {
-            if (_status == Status.Initialized)
+            if (Status == SocksStatus.Initialized)
                 throw new InvalidOperationException("Socklient has been initialized.");
 
-            if (_status == Status.Closed)
+            if (Status == SocksStatus.Closed)
                 throw new InvalidOperationException("Socklient closed, renew an instance for reuse.");
 
             var methods = new List<Method> { Method.NoAuthentication };
@@ -767,10 +771,10 @@ namespace SocklientDotNet {
         }
 
         private async Task HandshakeAndAuthenticationAsync(NetworkCredential credential) {
-            if (_status == Status.Initialized)
+            if (Status == SocksStatus.Initialized)
                 throw new InvalidOperationException("Socklient has been initialized.");
 
-            if (_status == Status.Closed)
+            if (Status == SocksStatus.Closed)
                 throw new InvalidOperationException("Socklient closed, renew an instance for reuse.");
 
             var methods = new List<Method> { Method.NoAuthentication };
@@ -1166,22 +1170,22 @@ namespace SocklientDotNet {
                 throw new InvalidOperationException("This property is available after 'Socklient.UdpAssociate' success.");
         }
 
-        enum Status {
-            /// <summary>
-            /// Before handshake and authentication.
-            /// </summary>
-            Initial,
-            /// <summary>
-            /// After handshake and authentication, able to send data.
-            /// </summary>
-            Initialized,
-            /// <summary>
-            /// Connection closed, can not reuse.
-            /// </summary>
-            Closed
-        }
-
         public void Dispose() => Close();
+    }
+
+    public enum SocksStatus {
+        /// <summary>
+        /// Before handshake and authentication.
+        /// </summary>
+        Initial,
+        /// <summary>
+        /// After handshake and authentication, able to send data.
+        /// </summary>
+        Initialized,
+        /// <summary>
+        /// Connection closed, can not reuse.
+        /// </summary>
+        Closed
     }
 
     public class UdpReceivePacket {
