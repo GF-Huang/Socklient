@@ -36,4 +36,19 @@ namespace SocklientDotNet {
         CommandNotSupported = 0x07,
         AddressTypeNotSupported = 0x08
     }
+
+    public enum SocksStatus {
+        /// <summary>
+        /// Before handshake and authentication.
+        /// </summary>
+        Initial,
+        /// <summary>
+        /// After handshake and authentication, able to send data.
+        /// </summary>
+        Initialized,
+        /// <summary>
+        /// Connection closed, can not reuse.
+        /// </summary>
+        Closed
+    }
 }
