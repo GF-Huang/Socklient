@@ -3,7 +3,7 @@
   <PropertyGroup>
     <TargetFrameworks>netcoreapp2.0;net45</TargetFrameworks>
     <RootNamespace>SocklientDotNet</RootNamespace>
-    <Version>2.2.2</Version>
+    <Version>2.2.3</Version>
     <PackageProjectUrl>https://github.com/GreatFireWall/Socklient</PackageProjectUrl>
     <Copyright />
     <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
@@ -11,16 +11,17 @@
 
 Supported Socks5 Commands: Connect &amp; UDP Associate.</Description>
     <PackageTags>socks, socks5, socks client, proxy, client</PackageTags>
-    <Authors>iFeng</Authors>
+    <Authors>GreatFireWall</Authors>
     <Company />
     <Product />
     <PackageReleaseNotes>Add property "Status" for getting current status of socklient instance.</PackageReleaseNotes>
-    <AssemblyVersion>2.2.2.0</AssemblyVersion>
+    <AssemblyVersion>2.2.3.0</AssemblyVersion>
     <FileVersion>2.2.2.0</FileVersion>
     <ApplicationIcon />
     <Win32Resource />
     <SignAssembly>false</SignAssembly>
     <LangVersion>latest</LangVersion>
+    <RepositoryUrl>https://github.com/GreatFireWall/Socklient</RepositoryUrl>
   </PropertyGroup>
 
   <PropertyGroup Condition="'$(Configuration)|$(TargetFramework)|$(Platform)'=='Debug|netcoreapp2.0|AnyCPU'">

@@ -1173,21 +1173,6 @@ namespace SocklientDotNet {
         public void Dispose() => Close();
     }
 
-    public enum SocksStatus {
-        /// <summary>
-        /// Before handshake and authentication.
-        /// </summary>
-        Initial,
-        /// <summary>
-        /// After handshake and authentication, able to send data.
-        /// </summary>
-        Initialized,
-        /// <summary>
-        /// Connection closed, can not reuse.
-        /// </summary>
-        Closed
-    }
-
     public class UdpReceivePacket {
         public byte[] Buffer { get; }
 
