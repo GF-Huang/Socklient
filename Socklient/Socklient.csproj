@@ -3,7 +3,7 @@
   <PropertyGroup>
     <TargetFrameworks>netcoreapp2.0;net45</TargetFrameworks>
     <RootNamespace>SocklientDotNet</RootNamespace>
-    <Version>2.2.3</Version>
+    <Version>2.2.4</Version>
     <PackageProjectUrl>https://github.com/GreatFireWall/Socklient</PackageProjectUrl>
     <Copyright />
     <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
@@ -14,8 +14,8 @@ Supported Socks5 Commands: Connect &amp; UDP Associate.</Description>
     <Authors>GreatFireWall</Authors>
     <Company />
     <Product />
-    <PackageReleaseNotes>Add property "Status" for getting current status of socklient instance.</PackageReleaseNotes>
-    <AssemblyVersion>2.2.3.0</AssemblyVersion>
+    <PackageReleaseNotes>Fix NullReferenceException bug.</PackageReleaseNotes>
+    <AssemblyVersion>2.2.4.0</AssemblyVersion>
     <FileVersion>2.2.2.0</FileVersion>
     <ApplicationIcon />
     <Win32Resource />

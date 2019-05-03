@@ -354,7 +354,7 @@ namespace SocklientDotNet {
             if (srcPort == 0)
                 srcPort = ((IPEndPoint)UDP.Client.LocalEndPoint).Port;
 
-            await SendCommandAsync(Command.UdpAssociate, _socksServerHost, _socksServerEndPoint.Address, srcPort);
+            await SendCommandAsync(Command.UdpAssociate, _socksServerHost, _socksServerEndPoint?.Address, srcPort);
 
             // Establishes a default remote host to socks server
             if (BoundType == AddressType.Domain)
