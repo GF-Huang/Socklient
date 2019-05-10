@@ -88,18 +88,16 @@ namespace SocklientDotNet {
         const int IPv4AddressBytes = 4;
         const int IPv6AddressBytes = 16;
 
-        string _socksServerHost;
-        int _socksServerPort;
-        IPEndPoint _socksServerEndPoint;
-        NetworkCredential _credential;
-
-        NetworkStream _stream;
-
-        Command _socksType;
-
-        string _udpDestHost;
-        IPAddress _udpDestAddress;
-        int _udpDestPort;
+        private string _socksServerHost;
+        private int _socksServerPort;
+        private IPEndPoint _socksServerEndPoint;
+        private NetworkCredential _credential;
+        private NetworkStream _stream;
+        private Command _socksType;
+        private string _udpDestHost;
+        private IPAddress _udpDestAddress;
+        private int _udpDestPort;
+        private bool _disposed = false;
         #endregion
 
         /// <summary>
@@ -375,15 +373,15 @@ namespace SocklientDotNet {
         /// Close and release all connections and local udp ports
         /// </summary>
         public void Close() {
-            _stream?.Close();
-            TCP?.Close();
-            UDP?.Close();
+            if (!_disposed) {
+                _disposed = true;
 
-            _stream = null;
-            TCP = null;
-            UDP = null;
+                _stream?.Close();
+                TCP?.Close();
+                UDP?.Close();
 
-            Status = SocksStatus.Closed;
+                Status = SocksStatus.Closed;
+            }
         }
 
         #region Use for Connect Command        
