@@ -1007,7 +1007,7 @@ namespace SocklientDotNet {
             if (p.Length > 255)
                 throw new InvalidOperationException("The length of param 'password' that convert to bytes can not greater than 255.");
 
-            var buffer = new byte[2 + u.Length + 1 + u.Length];
+            var buffer = new byte[2 + u.Length + 1 + p.Length];
 
             using (var stream = new MemoryStream(buffer))
             using (var writer = new BinaryWriter(stream)) {
