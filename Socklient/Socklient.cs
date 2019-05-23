@@ -246,7 +246,7 @@ namespace SocklientDotNet {
 
             //resolve hostname locally.
             if (ResolveHostnamesLocally && !IPAddress.TryParse(destHost, out _))
-                destHost = Dns.GetHostAddresses(destHost)[0].ToString();
+                destHost = (await Dns.GetHostAddressesAsync(destHost))[0].ToString();
 
             await SendCommandAsync(Command.Connect, destHost, destAddress, destPort);
 
@@ -362,7 +362,7 @@ namespace SocklientDotNet {
 
             //resolve hostname locally.
             if (ResolveHostnamesLocally && !IPAddress.TryParse(destHost, out _))
-                destHost = Dns.GetHostAddresses(destHost)[0].ToString();
+                destHost = (await Dns.GetHostAddressesAsync(destHost))[0].ToString();
 
             _udpDestHost = destHost;
             _udpDestAddress = destAddress;
