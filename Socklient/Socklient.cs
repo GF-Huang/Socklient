@@ -200,8 +200,8 @@ namespace SocklientDotNet {
             HandshakeAndAuthentication(_credential);
 
             //resolve hostname locally.
-            if (ResolveHostnamesLocally && !IPAddress.TryParse(destHost, out _))
-                destHost = Dns.GetHostAddresses(destHost)[0].ToString();
+            if (ResolveHostnamesLocally)
+                destAddress = Dns.GetHostAddresses(destHost)[0];
 
             SendCommand(Command.Connect, destHost, destAddress, destPort);
 
@@ -245,8 +245,8 @@ namespace SocklientDotNet {
             await HandshakeAndAuthenticationAsync(_credential);
 
             //resolve hostname locally.
-            if (ResolveHostnamesLocally && !IPAddress.TryParse(destHost, out _))
-                destHost = (await Dns.GetHostAddressesAsync(destHost))[0].ToString();
+            if (ResolveHostnamesLocally)
+                destAddress = (await Dns.GetHostAddressesAsync(destHost))[0];
 
             await SendCommandAsync(Command.Connect, destHost, destAddress, destPort);
 
@@ -291,8 +291,8 @@ namespace SocklientDotNet {
             HandshakeAndAuthentication(_credential);
 
             //resolve hostname locally.
-            if (ResolveHostnamesLocally && !IPAddress.TryParse(destHost, out _))
-                destHost = Dns.GetHostAddresses(destHost)[0].ToString();
+            if (ResolveHostnamesLocally)
+                destAddress = Dns.GetHostAddresses(destHost)[0];
 
             _udpDestHost = destHost;
             _udpDestAddress = destAddress;
@@ -361,8 +361,8 @@ namespace SocklientDotNet {
             await HandshakeAndAuthenticationAsync(_credential);
 
             //resolve hostname locally.
-            if (ResolveHostnamesLocally && !IPAddress.TryParse(destHost, out _))
-                destHost = (await Dns.GetHostAddressesAsync(destHost))[0].ToString();
+            if (ResolveHostnamesLocally)
+                destAddress = (await Dns.GetHostAddressesAsync(destHost))[0];
 
             _udpDestHost = destHost;
             _udpDestAddress = destAddress;
