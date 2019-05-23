@@ -80,6 +80,12 @@ namespace SocklientDotNet {
         /// </summary>
         public SocksStatus Status { get; private set; } = SocksStatus.Initial;
 
+        /// <summary>
+        /// Controls whether domain names are resolved locally or passed to the proxy server for evaluation
+        /// <para>False by default</para>
+        /// </summary>
+        public bool ResolveHostnamesLocally { get; set; } = false;
+
         #region Internal Fields
         const byte VERSION = 0x05;
         // Defines in RFC 1929
@@ -121,7 +127,6 @@ namespace SocklientDotNet {
             if (IPAddress.TryParse(socksServerHost, out var address)) {
                 _socksServerEndPoint = new IPEndPoint(address, port);
                 TCP = new TcpClient(address.AddressFamily);
-
             } else {
                 TCP = new TcpClient();
             }
@@ -194,6 +199,10 @@ namespace SocklientDotNet {
 
             HandshakeAndAuthentication(_credential);
 
+            //resolve hostname locally.
+            if (ResolveHostnamesLocally && !IPAddress.TryParse(destHost, out _))
+                destHost = Dns.GetHostAddresses(destHost)[0].ToString();
+
             SendCommand(Command.Connect, destHost, destAddress, destPort);
 
             _socksType = Command.Connect;
@@ -234,6 +243,10 @@ namespace SocklientDotNet {
             _stream = TCP.GetStream();
 
             await HandshakeAndAuthenticationAsync(_credential);
+
+            //resolve hostname locally.
+            if (ResolveHostnamesLocally && !IPAddress.TryParse(destHost, out _))
+                destHost = Dns.GetHostAddresses(destHost)[0].ToString();
 
             await SendCommandAsync(Command.Connect, destHost, destAddress, destPort);
 
@@ -276,6 +289,10 @@ namespace SocklientDotNet {
             _stream = TCP.GetStream();
 
             HandshakeAndAuthentication(_credential);
+
+            //resolve hostname locally.
+            if (ResolveHostnamesLocally && !IPAddress.TryParse(destHost, out _))
+                destHost = Dns.GetHostAddresses(destHost)[0].ToString();
 
             _udpDestHost = destHost;
             _udpDestAddress = destAddress;
@@ -342,6 +359,10 @@ namespace SocklientDotNet {
             _stream = TCP.GetStream();
 
             await HandshakeAndAuthenticationAsync(_credential);
+
+            //resolve hostname locally.
+            if (ResolveHostnamesLocally && !IPAddress.TryParse(destHost, out _))
+                destHost = Dns.GetHostAddresses(destHost)[0].ToString();
 
             _udpDestHost = destHost;
             _udpDestAddress = destAddress;
