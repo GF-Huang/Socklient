@@ -80,6 +80,8 @@ namespace SocklientDotNet {
         /// </summary>
         public SocksStatus Status { get; private set; } = SocksStatus.Initial;
 
+        public NetworkCredential Credential { get; set; }
+
         #region Internal Fields
         const byte VERSION = 0x05;
         // Defines in RFC 1929
@@ -91,7 +93,6 @@ namespace SocklientDotNet {
         private string _socksServerHost;
         private int _socksServerPort;
         private IPEndPoint _socksServerEndPoint;
-        private NetworkCredential _credential;
         private NetworkStream _stream;
         private Command _socksType;
         private string _udpDestHost;
@@ -116,7 +117,7 @@ namespace SocklientDotNet {
         public Socklient(string socksServerHost, int port, NetworkCredential credential) {
             _socksServerHost = socksServerHost;
             _socksServerPort = port;
-            _credential = credential;
+            Credential = credential;
 
             if (IPAddress.TryParse(socksServerHost, out var address)) {
                 _socksServerEndPoint = new IPEndPoint(address, port);
@@ -156,7 +157,7 @@ namespace SocklientDotNet {
         /// <param name="credential"></param>
         public Socklient(IPEndPoint socksServerEndPoint, NetworkCredential credential) {
             _socksServerEndPoint = socksServerEndPoint;
-            _credential = credential;
+            Credential = credential;
 
             TCP = new TcpClient(socksServerEndPoint.AddressFamily);
         }
@@ -192,7 +193,7 @@ namespace SocklientDotNet {
 
             _stream = TCP.GetStream();
 
-            HandshakeAndAuthentication(_credential);
+            HandshakeAndAuthentication(Credential);
 
             SendCommand(Command.Connect, destHost, destAddress, destPort);
 
@@ -233,7 +234,7 @@ namespace SocklientDotNet {
 
             _stream = TCP.GetStream();
 
-            await HandshakeAndAuthenticationAsync(_credential);
+            await HandshakeAndAuthenticationAsync(Credential);
 
             await SendCommandAsync(Command.Connect, destHost, destAddress, destPort);
 
@@ -275,7 +276,7 @@ namespace SocklientDotNet {
 
             _stream = TCP.GetStream();
 
-            HandshakeAndAuthentication(_credential);
+            HandshakeAndAuthentication(Credential);
 
             _udpDestHost = destHost;
             _udpDestAddress = destAddress;
@@ -341,7 +342,7 @@ namespace SocklientDotNet {
 
             _stream = TCP.GetStream();
 
-            await HandshakeAndAuthenticationAsync(_credential);
+            await HandshakeAndAuthenticationAsync(Credential);
 
             _udpDestHost = destHost;
             _udpDestAddress = destAddress;
