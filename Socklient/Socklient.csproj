@@ -3,7 +3,7 @@
   <PropertyGroup>
     <TargetFrameworks>netcoreapp2.0;net45</TargetFrameworks>
     <RootNamespace>SocklientDotNet</RootNamespace>
-    <Version>2.2.8</Version>
+    <Version>2.2.9</Version>
     <PackageProjectUrl>https://github.com/GreatFireWall/Socklient</PackageProjectUrl>
     <Copyright />
     <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
@@ -15,8 +15,8 @@ Supported Socks5 Commands: Connect &amp; UDP Associate.</Description>
     <Company />
     <Product />
     <PackageReleaseNotes>Add GetStream() method for instead to do the read/write operation.</PackageReleaseNotes>
-    <AssemblyVersion>2.2.8.0</AssemblyVersion>
-    <FileVersion>2.2.8.0</FileVersion>
+    <AssemblyVersion>2.2.9.0</AssemblyVersion>
+    <FileVersion>2.2.9.0</FileVersion>
     <ApplicationIcon />
     <Win32Resource />
     <SignAssembly>false</SignAssembly>

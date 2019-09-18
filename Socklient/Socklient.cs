@@ -370,6 +370,15 @@ namespace SocklientDotNet {
             Status = SocksStatus.Initialized;
         }
 
+        public NetworkStream GetStream() {
+            if (_disposed)
+                throw new ObjectDisposedException(this.GetType().FullName);
+            if (Status != SocksStatus.Initialized)
+                throw new InvalidOperationException("Socklient not yet connected.");
+
+            return TCP.GetStream();
+        }
+
         /// <summary>
         /// Close and release all connections and local udp ports
         /// </summary>
