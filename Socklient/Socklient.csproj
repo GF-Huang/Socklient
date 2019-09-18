@@ -3,7 +3,7 @@
   <PropertyGroup>
     <TargetFrameworks>netcoreapp2.0;net45</TargetFrameworks>
     <RootNamespace>SocklientDotNet</RootNamespace>
-    <Version>2.2.7</Version>
+    <Version>2.2.8</Version>
     <PackageProjectUrl>https://github.com/GreatFireWall/Socklient</PackageProjectUrl>
     <Copyright />
     <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
@@ -14,14 +14,15 @@ Supported Socks5 Commands: Connect &amp; UDP Associate.</Description>
     <Authors>GreatFireWall</Authors>
     <Company />
     <Product />
-    <PackageReleaseNotes>Add Credential property for assigning proxy credential via property.</PackageReleaseNotes>
-    <AssemblyVersion>2.2.7.0</AssemblyVersion>
-    <FileVersion>2.2.7.0</FileVersion>
+    <PackageReleaseNotes>Add GetStream() method for instead to do the read/write operation.</PackageReleaseNotes>
+    <AssemblyVersion>2.2.8.0</AssemblyVersion>
+    <FileVersion>2.2.8.0</FileVersion>
     <ApplicationIcon />
     <Win32Resource />
     <SignAssembly>false</SignAssembly>
     <LangVersion>latest</LangVersion>
     <RepositoryUrl>https://github.com/GreatFireWall/Socklient</RepositoryUrl>
+    <PackageRequireLicenseAcceptance>false</PackageRequireLicenseAcceptance>
   </PropertyGroup>
 
   <PropertyGroup Condition="'$(Configuration)|$(TargetFramework)|$(Platform)'=='Debug|netcoreapp2.0|AnyCPU'">

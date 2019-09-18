@@ -287,8 +287,8 @@ namespace SocklientDotNet {
             if (srcPort == 0)
                 srcPort = ((IPEndPoint)UDP.Client.LocalEndPoint).Port;
 
-            SendCommand(Command.UdpAssociate, _socksServerHost, _socksServerEndPoint.Address, srcPort);     
-            
+            SendCommand(Command.UdpAssociate, _socksServerHost, _socksServerEndPoint.Address, srcPort);
+
             // Establishes a default remote host to socks server
             if (BoundType == AddressType.Domain)
                 UDP.Connect(BoundDomain, BoundPort);
@@ -310,7 +310,7 @@ namespace SocklientDotNet {
         /// <param name="destHost">The destination host you want to communicate via socks server</param>
         /// <param name="destPort">The destination port of the host</param>
         /// <param name="srcPort">The local port for communication with socks server</param>
-        public Task UdpAssociateAsync(string destHost, int destPort, int srcPort = 0) => 
+        public Task UdpAssociateAsync(string destHost, int destPort, int srcPort = 0) =>
             UdpAssociateAsync(destHost, null, destPort, srcPort);
 
         /// <summary>
@@ -320,7 +320,7 @@ namespace SocklientDotNet {
         /// <param name="destPort">The destination port of the host</param>
         /// <param name="srcPort">The local port for communication with socks server</param>
         /// <returns></returns>
-        public Task UdpAssociateAsync(IPAddress destAddress, int destPort, int srcPort = 0) => 
+        public Task UdpAssociateAsync(IPAddress destAddress, int destPort, int srcPort = 0) =>
             UdpAssociateAsync(null, destAddress, destPort, srcPort);
 
         /// <summary>
@@ -388,10 +388,13 @@ namespace SocklientDotNet {
         #region Use for Connect Command        
         // Sync 
 
+        private const string UseGetStreamInstead = "Use GetStream() instead to do the read/write operation.";
+
         /// <summary>
         /// Sending string data used for TCP relay
         /// </summary>
         /// <param name="str"></param>
+        [Obsolete(UseGetStreamInstead)]
         public void Write(string str) {
             Write(Encoding.UTF8.GetBytes(str));
         }
@@ -400,8 +403,9 @@ namespace SocklientDotNet {
         /// Sending bytes data used for TCP relay
         /// </summary>
         /// <param name="data"></param>
+        [Obsolete(UseGetStreamInstead)]
         public void Write(byte[] data) {
-            CheckSocksType(Command.Connect);
+            CheckSocksStatus(Command.Connect);
 
             _stream.Write(data, 0, data.Length);
         }
@@ -412,8 +416,9 @@ namespace SocklientDotNet {
         /// <param name="buffer"></param>
         /// <param name="offset"></param>
         /// <param name="size"></param>
+        [Obsolete(UseGetStreamInstead)]
         public void Write(byte[] buffer, int offset, int size) {
-            CheckSocksType(Command.Connect);
+            CheckSocksStatus(Command.Connect);
 
             _stream.Write(buffer, offset, size);
         }
@@ -425,8 +430,9 @@ namespace SocklientDotNet {
         /// <param name="offset"></param>
         /// <param name="size"></param>
         /// <returns></returns>
+        [Obsolete(UseGetStreamInstead)]
         public int Read(byte[] buffer, int offset, int size) {
-            CheckSocksType(Command.Connect);
+            CheckSocksStatus(Command.Connect);
 
             return _stream.Read(buffer, offset, size);
         }
@@ -437,14 +443,16 @@ namespace SocklientDotNet {
         /// Sending string data used for TCP relay as an asynchronous operation
         /// </summary>
         /// <param name="str"></param>
+        [Obsolete(UseGetStreamInstead)]
         public Task WriteAsync(string str) => WriteAsync(Encoding.UTF8.GetBytes(str));
 
         /// <summary>
         /// Sending bytes data used for TCP relay as an asynchronous operation
         /// </summary>
         /// <param name="data"></param>
+        [Obsolete(UseGetStreamInstead)]
         public Task WriteAsync(byte[] data) {
-            CheckSocksType(Command.Connect);
+            CheckSocksStatus(Command.Connect);
 
             return _stream.WriteAsync(data, 0, data.Length);
         }
@@ -455,8 +463,9 @@ namespace SocklientDotNet {
         /// <param name="buffer"></param>
         /// <param name="offset"></param>
         /// <param name="size"></param>
+        [Obsolete(UseGetStreamInstead)]
         public Task WriteAsync(byte[] buffer, int offset, int size) {
-            CheckSocksType(Command.Connect);
+            CheckSocksStatus(Command.Connect);
 
             return _stream.WriteAsync(buffer, offset, size);
         }
@@ -468,8 +477,9 @@ namespace SocklientDotNet {
         /// <param name="offset"></param>
         /// <param name="size"></param>
         /// <param name="token"></param>
+        [Obsolete(UseGetStreamInstead)]
         public Task WriteAsync(byte[] buffer, int offset, int size, CancellationToken token) {
-            CheckSocksType(Command.Connect);
+            CheckSocksStatus(Command.Connect);
 
             return _stream.WriteAsync(buffer, offset, size, token);
         }
@@ -481,8 +491,9 @@ namespace SocklientDotNet {
         /// <param name="offset"></param>
         /// <param name="size"></param>
         /// <returns></returns>
+        [Obsolete(UseGetStreamInstead)]
         public Task<int> ReadAsync(byte[] buffer, int offset, int size) {
-            CheckSocksType(Command.Connect);
+            CheckSocksStatus(Command.Connect);
 
             return _stream.ReadAsync(buffer, offset, size);
         }
@@ -495,8 +506,9 @@ namespace SocklientDotNet {
         /// <param name="size"></param>
         /// <param name="token"></param>
         /// <returns></returns>
+        [Obsolete(UseGetStreamInstead)]
         public Task<int> ReadAsync(byte[] buffer, int offset, int size, CancellationToken token) {
-            CheckSocksType(Command.Connect);
+            CheckSocksStatus(Command.Connect);
 
             return _stream.ReadAsync(buffer, offset, size, token);
         }
@@ -546,7 +558,7 @@ namespace SocklientDotNet {
         /// <param name="offset"></param>
         /// <param name="bytes"></param>
         /// <returns></returns>
-        public int Send(byte[] datagramBuffer, int offset, int bytes) => 
+        public int Send(byte[] datagramBuffer, int offset, int bytes) =>
             Send(datagramBuffer, offset, bytes, _udpDestHost, _udpDestAddress, _udpDestPort);
 
         /// <summary>
@@ -598,7 +610,7 @@ namespace SocklientDotNet {
             Send(datagramBuffer, offset, bytes, null, destAddress, destPort);
 
         private int Send(byte[] datagramBuffer, int offset, int bytes, string destHost, IPAddress destAddress, int destPort) {
-            CheckSocksType(Command.UdpAssociate);
+            CheckSocksStatus(Command.UdpAssociate);
 
             var packedDatagram = PackUdp(destHost, destAddress, destPort, datagramBuffer, offset, bytes);
             var headerLength = packedDatagram.Length - bytes;
@@ -626,7 +638,7 @@ namespace SocklientDotNet {
         /// <param name="remotePort">the service port of host</param>
         /// <returns></returns>
         public byte[] Receive(out string remoteHost, out IPAddress remoteAddress, out int remotePort) {
-            CheckSocksType(Command.UdpAssociate);
+            CheckSocksStatus(Command.UdpAssociate);
 
             return UnpackUdp(UDP.Receive(ref _remoteEndPoint), out remoteHost, out remoteAddress, out remotePort);
         }
@@ -667,7 +679,7 @@ namespace SocklientDotNet {
         /// </summary>
         /// <param name="datagram"></param>
         /// <returns>Sent bytes count</returns>
-        public Task<int> SendAsync(byte[] datagram) => 
+        public Task<int> SendAsync(byte[] datagram) =>
             SendAsync(datagram, 0, datagram.Length, _udpDestHost, _udpDestAddress, _udpDestPort);
 
         /// <summary>
@@ -729,7 +741,7 @@ namespace SocklientDotNet {
             SendAsync(datagramBuffer, offset, bytes, null, destAddress, destPort);
 
         private async Task<int> SendAsync(byte[] datagramBuffer, int offset, int bytes, string destHost, IPAddress destAddress, int destPort) {
-            CheckSocksType(Command.UdpAssociate);
+            CheckSocksStatus(Command.UdpAssociate);
 
             var packedDatagram = PackUdp(destHost, destAddress, destPort, datagramBuffer, offset, bytes);
             var headerLength = packedDatagram.Length - bytes;
@@ -742,7 +754,7 @@ namespace SocklientDotNet {
         /// </summary>
         /// <returns></returns>
         public async Task<UdpReceivePacket> ReceiveAsync() {
-            CheckSocksType(Command.UdpAssociate);
+            CheckSocksStatus(Command.UdpAssociate);
 
             var result = await UDP.ReceiveAsync();
 
@@ -806,7 +818,7 @@ namespace SocklientDotNet {
 
             return addressType;
         }
-        
+
         private byte[] PackUdp(string destHost, IPAddress destAddress, int destPort, byte[] payloadBuffer, int offset, int bytes) {
             // Add socks udp associate request header
             // +-----+------+------+----------+----------+----------+
@@ -1159,7 +1171,10 @@ namespace SocklientDotNet {
             }
         }
 
-        private void CheckSocksType(Command allowedType) {
+        private void CheckSocksStatus(Command allowedType) {
+            if (_disposed)
+                throw new ObjectDisposedException(this.GetType().FullName);
+
             if (_socksType != allowedType)
                 throw new InvalidOperationException($"This method only available where socklient under {allowedType} mode");
         }
