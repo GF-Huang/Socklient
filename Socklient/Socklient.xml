@@ -1,0 +1,308 @@
+<?xml version="1.0"?>
+<doc>
+    <assembly>
+        <name>Socklient</name>
+    </assembly>
+    <members>
+        <member name="F:SocklientDotNet.Command.Bind">
+            <summary>
+            Unsupported yet
+            </summary>
+        </member>
+        <member name="F:SocklientDotNet.SocksStatus.Initial">
+            <summary>
+            Before handshake and authentication.
+            </summary>
+        </member>
+        <member name="F:SocklientDotNet.SocksStatus.Connected">
+            <summary>
+            After handshake and authentication, able to send data.
+            </summary>
+        </member>
+        <member name="F:SocklientDotNet.SocksStatus.Closed">
+            <summary>
+            Connection closed, can not reuse.
+            </summary>
+        </member>
+        <member name="P:SocklientDotNet.Socklient.BoundType">
+            <summary>
+            ATYP
+            </summary>
+        </member>
+        <member name="P:SocklientDotNet.Socklient.BoundDomain">
+            <summary>
+            BND.ADDR, when ATYP is a Domain
+            </summary>
+        </member>
+        <member name="P:SocklientDotNet.Socklient.BoundAddress">
+            <summary>
+            BND.ADDR, when ATYP either IPv4 or IPv6
+            </summary>
+        </member>
+        <member name="P:SocklientDotNet.Socklient.BoundPort">
+            <summary>
+            BND.PORT
+            </summary>
+        </member>
+        <member name="P:SocklientDotNet.Socklient.TCP">
+            <summary>
+            Get underlying TcpClient for more fine-grained control when you are using CONNECT mode
+            </summary>
+        </member>
+        <member name="P:SocklientDotNet.Socklient.UDP">
+            <summary>
+            Get underlying UdpClient for more fine-grained control when you are using UDP-ASSOCIATE mode
+            </summary>
+        </member>
+        <member name="P:SocklientDotNet.Socklient.Status">
+            <summary>
+            Get current status of socklient.
+            </summary>
+        </member>
+        <member name="M:SocklientDotNet.Socklient.#ctor(System.String,System.Int32)">
+            <summary>
+            Construct a socklient client with specified SOCKS5 server
+            </summary>
+            <param name="socksServerHost">Socks5 Server hostname or address</param>
+            <param name="port">SOCKS5 protocol service port</param>
+        </member>
+        <member name="M:SocklientDotNet.Socklient.#ctor(System.String,System.Int32,System.Net.NetworkCredential)">
+            <summary>
+            Construct a socklient client with specified SOCKS5 server that requires a basic username/password authentication
+            </summary>
+            <param name="socksServerHost">Socks5 Server hostname or address</param>
+            <param name="port">SOCKS5 protocol service port</param>
+            <param name="credential">a simple credential contains username and password for authentication</param>
+        </member>
+        <member name="M:SocklientDotNet.Socklient.#ctor(System.Net.IPAddress,System.Int32)">
+            <summary>
+            Construct a socklient client with specified SOCKS5 server
+            </summary>
+            <param name="socksServerAddress"></param>
+            <param name="port"></param>
+        </member>
+        <member name="M:SocklientDotNet.Socklient.#ctor(System.Net.IPAddress,System.Int32,System.Net.NetworkCredential)">
+            <summary>
+            Construct a socklient client with specified SOCKS5 server that requires a basic username/password authentication
+            </summary>
+            <param name="socksServerAddress"></param>
+            <param name="port"></param>
+            <param name="credential"></param>
+        </member>
+        <member name="M:SocklientDotNet.Socklient.#ctor(System.Net.IPEndPoint)">
+            <summary>
+            Construct a socklient client with specified SOCKS5 server
+            </summary>
+            <param name="socksServerEndPoint"></param>
+        </member>
+        <member name="M:SocklientDotNet.Socklient.#ctor(System.Net.IPEndPoint,System.Net.NetworkCredential)">
+            <summary>
+            Construct a socklient client with specified SOCKS5 server that requires a basic username/password authentication
+            </summary>
+            <param name="socksServerEndPoint"></param>
+            <param name="credential"></param>
+        </member>
+        <member name="M:SocklientDotNet.Socklient.Connect(System.String,System.Int32)">
+            <summary>
+            Send a connect command to SOCKS5 server for TCP relay
+            </summary>
+            <param name="destHost">The destination host you want to communicate via socks server</param>
+            <param name="destPort">The destination port of the host</param>
+        </member>
+        <member name="M:SocklientDotNet.Socklient.Connect(System.Net.IPAddress,System.Int32)">
+            <summary>
+            Send a connect command to SOCKS5 server for TCP relay
+            </summary>
+            <param name="destAddress">The destination address you want to communicate via socks server</param>
+            <param name="destPort">The destination port of the host</param>
+        </member>
+        <member name="M:SocklientDotNet.Socklient.Connect(System.String,System.Net.IPAddress,System.Int32)">
+            <summary>
+            Connect internal implementation
+            </summary>
+            <param name="destHost">The destination host you want to communicate via socks server</param>
+            <param name="destAddress">The destination address you want to communicate via socks server</param>
+            <param name="destPort">The destination port of the host</param>
+        </member>
+        <member name="M:SocklientDotNet.Socklient.ConnectAsync(System.String,System.Int32)">
+            <summary>
+            Send a connect command to SOCKS5 server for TCP relay as an asynchronous operation
+            </summary>
+            <param name="destHost">The destination host you want to communicate via socks server</param>
+            <param name="destPort">The destination port of the host</param>
+        </member>
+        <member name="M:SocklientDotNet.Socklient.ConnectAsync(System.Net.IPAddress,System.Int32)">
+            <summary>
+            Send a connect command to SOCKS5 server for TCP relay as an asynchronous operation
+            </summary>
+            <param name="destAddress">The destination host you want to communicate via socks server</param>
+            <param name="destPort">The destination port of the host</param>
+            <returns></returns>
+        </member>
+        <member name="M:SocklientDotNet.Socklient.ConnectAsync(System.String,System.Net.IPAddress,System.Int32)">
+            <summary>
+            ConnectAsync internal implementation
+            </summary>
+            <param name="destHost">The destination host you want to communicate via socks server</param>
+            <param name="destAddress">The destination address you want to communicate via socks server</param>
+            <param name="destPort">The destination port of the host</param>
+            <returns></returns>
+        </member>
+        <member name="M:SocklientDotNet.Socklient.UdpAssociate(System.Net.IPAddress,System.Int32)">
+            <summary>
+            Send a UDP associate command to SOCKS5 server for UDP relay. The <paramref name="srcAddress"/> and <paramref name="srcPort"/> fields contain the address and port that the client expects to use to send UDP datagrams on for the association. The server MAY use this information to limit access to the association. If the client is not in possesion of the information at the time of UDP Associate (for example, all personal users are NAT, there is no way to determine the public IP and port they will use before sending), the client MUST use a port number and address of all zeros.
+            </summary>
+            <param name="srcAddress">The address that the client expects to use to send UDP datagrams on for the association. Alias of DST.ADDR defined in RFC 1928 UDP Associate.</param>
+            <param name="srcPort">The port that the client expects to use to send UDP datagrams on for the association. Alias of DST.PORT defined in RFC 1928 UDP Associate.</param>
+        </member>
+        <member name="M:SocklientDotNet.Socklient.UdpAssociateAsync(System.Net.IPAddress,System.Int32)">
+            <summary>
+            Send a UDP associate command to SOCKS5 server for UDP relay. The <paramref name="srcAddress"/> and <paramref name="srcPort"/> fields contain the address and port that the client expects to use to send UDP datagrams on for the association. The server MAY use this information to limit access to the association. If the client is not in possesion of the information at the time of UDP Associate (for example, all personal users are NAT, there is no way to determine the public IP and port they will use before sending), the client MUST use a port number and address of all zeros.
+            </summary>
+            <param name="srcAddress">The address that the client expects to use to send UDP datagrams on for the association. Alias of DST.ADDR defined in RFC 1928 UDP Associate.</param>
+            <param name="srcPort">The port that the client expects to use to send UDP datagrams on for the association. Alias of DST.PORT defined in RFC 1928 UDP Associate.</param>
+        </member>
+        <member name="M:SocklientDotNet.Socklient.Close">
+            <summary>
+            Close and release all connections and local UDP ports
+            </summary>
+        </member>
+        <member name="M:SocklientDotNet.Socklient.Send(System.String,System.String,System.Int32)">
+            <summary>
+            Sending string data to destination via SOCKS server.
+            </summary>
+            <param name="str"></param>
+            <param name="destHost"></param>
+            <param name="destPort"></param>
+            <returns></returns>
+        </member>
+        <member name="M:SocklientDotNet.Socklient.Send(System.String,System.Net.IPAddress,System.Int32)">
+            <summary>
+            Sending string data to destination via SOCKS server.
+            </summary>
+            <param name="str"></param>
+            <param name="destAddress"></param>
+            <param name="destPort"></param>
+            <returns></returns>
+        </member>
+        <member name="M:SocklientDotNet.Socklient.Send(System.Byte[],System.String,System.Int32)">
+            <summary>
+            Sending user datagram to destination via SOCKS server.
+            </summary>
+            <param name="datagram"></param>
+            <param name="destHost"></param>
+            <param name="destPort"></param>
+            <returns></returns>
+        </member>
+        <member name="M:SocklientDotNet.Socklient.Send(System.Byte[],System.Net.IPAddress,System.Int32)">
+            <summary>
+            Sending user datagram to destination via SOCKS server.
+            </summary>
+            <param name="datagram"></param>
+            <param name="destAddress"></param>
+            <param name="destPort"></param>
+            <returns></returns>
+        </member>
+        <member name="M:SocklientDotNet.Socklient.Send(System.Byte[],System.Int32,System.Int32,System.String,System.Int32)">
+            <summary>
+            Sending user datagram to destination via SOCKS server.
+            </summary>
+            <param name="datagramBuffer"></param>
+            <param name="offset"></param>
+            <param name="bytes"></param>
+            <param name="destHost"></param>
+            <param name="destPort"></param>
+            <returns></returns>
+        </member>
+        <member name="M:SocklientDotNet.Socklient.Send(System.Byte[],System.Int32,System.Int32,System.Net.IPAddress,System.Int32)">
+            <summary>
+            Sending user datagram to destination via SOCKS server.
+            </summary>
+            <param name="datagramBuffer"></param>
+            <param name="offset"></param>
+            <param name="bytes"></param>
+            <param name="destAddress"></param>
+            <param name="destPort"></param>
+            <returns></returns>
+        </member>
+        <member name="M:SocklientDotNet.Socklient.Receive">
+            <summary>
+            Receiving datagram for UDP relay
+            </summary>
+            <returns></returns>
+        </member>
+        <member name="M:SocklientDotNet.Socklient.Receive(System.String@,System.Net.IPAddress@,System.Int32@)">
+            <summary>
+            Receiving datagram with remote host info for UDP relay
+            </summary>
+            <param name="remoteHost">The host what you relay via SOCKS5 server</param>
+            <param name="remoteAddress">The address of host what you relay via SOCKS5 server</param>
+            <param name="remotePort">The service port of host</param>
+            <returns></returns>
+        </member>
+        <member name="M:SocklientDotNet.Socklient.SendAsync(System.String,System.String,System.Int32)">
+            <summary>
+            Sending string data to destination via SOCKS server.
+            </summary>
+            <param name="str"></param>
+            <param name="destHost"></param>
+            <param name="destPort"></param>
+            <returns></returns>
+        </member>
+        <member name="M:SocklientDotNet.Socklient.SendAsync(System.String,System.Net.IPAddress,System.Int32)">
+            <summary>
+            Sending string data to destination via SOCKS server.
+            </summary>
+            <param name="str"></param>
+            <param name="destAddress"></param>
+            <param name="destPort"></param>
+            <returns></returns>
+        </member>
+        <member name="M:SocklientDotNet.Socklient.SendAsync(System.Byte[],System.String,System.Int32)">
+            <summary>
+            Sending user datagram to destination via SOCKS server.
+            </summary>
+            <param name="datagram"></param>
+            <param name="destHost"></param>
+            <param name="destPort"></param>
+            <returns></returns>
+        </member>
+        <member name="M:SocklientDotNet.Socklient.SendAsync(System.Byte[],System.Net.IPAddress,System.Int32)">
+            <summary>
+            Sending user datagram to destination via SOCKS server.
+            </summary>
+            <param name="datagram"></param>
+            <param name="destAddress"></param>
+            <param name="destPort"></param>
+            <returns></returns>
+        </member>
+        <member name="M:SocklientDotNet.Socklient.SendAsync(System.Byte[],System.Int32,System.Int32,System.String,System.Int32)">
+            <summary>
+            Sending user datagram to destination via SOCKS server.
+            </summary>
+            <param name="datagramBuffer"></param>
+            <param name="offset"></param>
+            <param name="bytes"></param>
+            <param name="destHost"></param>
+            <param name="destPort"></param>
+            <returns></returns>
+        </member>
+        <member name="M:SocklientDotNet.Socklient.SendAsync(System.Byte[],System.Int32,System.Int32,System.Net.IPAddress,System.Int32)">
+            <summary>
+            Sending user datagram to destination via SOCKS server.
+            </summary>
+            <param name="datagramBuffer"></param>
+            <param name="offset"></param>
+            <param name="bytes"></param>
+            <param name="destAddress"></param>
+            <param name="destPort"></param>
+            <returns></returns>
+        </member>
+        <member name="M:SocklientDotNet.Socklient.ReceiveAsync">
+            <summary>
+            Receiving datagram with remote host info for UDP relay as an asynchronous operation.
+            </summary>
+            <returns></returns>
+        </member>
+    </members>
+</doc>

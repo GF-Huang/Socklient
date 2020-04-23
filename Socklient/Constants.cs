@@ -45,7 +45,7 @@ namespace SocklientDotNet {
         /// <summary>
         /// After handshake and authentication, able to send data.
         /// </summary>
-        Initialized,
+        Connected,
         /// <summary>
         /// Connection closed, can not reuse.
         /// </summary>

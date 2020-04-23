@@ -1,28 +1,31 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFrameworks>netcoreapp2.0;net45</TargetFrameworks>
+    <TargetFramework>netstandard2.0</TargetFramework>
     <RootNamespace>SocklientDotNet</RootNamespace>
-    <Version>2.2.9</Version>
-    <PackageProjectUrl>https://github.com/GreatFireWall/Socklient</PackageProjectUrl>
+    <Version>3.0.0</Version>
+    <PackageProjectUrl>https://github.com/GF-Huang/Socklient</PackageProjectUrl>
     <Copyright />
     <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
-    <Description>A socks5 client written in C# that implements RFC1928 &amp; RFC1929.
+    <Description>A SOCKS5 client written in C# that implements RFC1928 &amp; RFC1929.
 
-Supported Socks5 Commands: Connect &amp; UDP Associate.</Description>
-    <PackageTags>socks, socks5, socks client, proxy, client</PackageTags>
-    <Authors>GreatFireWall</Authors>
-    <Company />
+Supported SOCKS5 Commands: Connect &amp; UDP Associate.</Description>
+    <PackageTags>SOCKS, SOCKS5, SOCKS client, proxy, client</PackageTags>
+    <Authors>GF-Huang</Authors>
+    <Company></Company>
     <Product />
-    <PackageReleaseNotes>Add GetStream() method for instead to do the read/write operation.</PackageReleaseNotes>
-    <AssemblyVersion>2.2.9.0</AssemblyVersion>
-    <FileVersion>2.2.9.0</FileVersion>
+    <PackageReleaseNotes>Breaking change!!!
+Delete some unnecessary methods.
+Significant changes have taken place in UdpAssociate and UdpAssociateAsync. Please check the method's comments.</PackageReleaseNotes>
+    <AssemblyVersion>3.0.0.0</AssemblyVersion>
+    <FileVersion>3.0.0.0</FileVersion>
     <ApplicationIcon />
     <Win32Resource />
     <SignAssembly>false</SignAssembly>
     <LangVersion>latest</LangVersion>
-    <RepositoryUrl>https://github.com/GreatFireWall/Socklient</RepositoryUrl>
+    <RepositoryUrl>https://github.com/GF-Huang/Socklient</RepositoryUrl>
     <PackageRequireLicenseAcceptance>false</PackageRequireLicenseAcceptance>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
   </PropertyGroup>
 
   <PropertyGroup Condition="'$(Configuration)|$(TargetFramework)|$(Platform)'=='Debug|netcoreapp2.0|AnyCPU'">
@@ -47,6 +50,14 @@ Supported Socks5 Commands: Connect &amp; UDP Associate.</Description>
     <DocumentationFile>bin\Release\net45\Socklient.xml</DocumentationFile>
     <NoWarn>1701;1702;1705;1591</NoWarn>
     <WarningLevel>4</WarningLevel>
+  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
+    <DocumentationFile>D:\Code\Socklient\Socklient\Socklient.xml</DocumentationFile>
+  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|AnyCPU'">
+    <DocumentationFile>D:\Code\Socklient\Socklient\Socklient.xml</DocumentationFile>
   </PropertyGroup>
 
 </Project>
