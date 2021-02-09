@@ -15,17 +15,23 @@ Example
 
 ### TCP
 ```cs
+using Socklient;
+
+
 using var client = new SocksClient(IPAddress.Parse("xxx.xxx.xxx.xxx") /* or some server hostname or domain */, 
                                    1080 /* or other ports */);
 await client.ConnectAsync("somewebsite.com", 80 /*or 443 or other ports*/);
 var stream = client.GetStream();
 // Read and Write on this stream
-stream.ReadAsync(...)
-strea.WriteAsync(...)
+await stream.ReadAsync(...)
+await stream.WriteAsync(...)
 ```
 
 ### UDP
 ```cs
+using Socklient;
+
+
 using var client = new SocksClient(IPAddress.Parse("xxx.xxx.xxx.xxx") /* or some server hostname or domain */, 
                                    1080 /* or other ports */);
 // Usually, all personal users are NAT, so there is no way to determine the public IP and port they will use before sending.
