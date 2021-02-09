@@ -23,8 +23,8 @@ using var client = new SocksClient(IPAddress.Parse("xxx.xxx.xxx.xxx") /* or some
 await client.ConnectAsync("somewebsite.com", 80 /*or 443 or other ports*/);
 var stream = client.GetStream();
 // Read and Write on this stream
-await stream.ReadAsync(...)
-await stream.WriteAsync(...)
+await stream.ReadAsync(...);
+await stream.WriteAsync(...);
 ```
 
 ### UDP
@@ -34,9 +34,11 @@ using Socklient;
 
 using var client = new SocksClient(IPAddress.Parse("xxx.xxx.xxx.xxx") /* or some server hostname or domain */, 
                                    1080 /* or other ports */);
-// Usually, all personal users are NAT, so there is no way to determine the public IP and port they will use before sending.
+// Usually, all personal users are NAT, 
+// so there is no way to determine the public IP and port they will use before sending.
 // In this case, the client MUST use a port number and address of all zeros.
-// More details read the this method comments or go to https://tools.ietf.org/html/rfc1928 then search "zeros" keyword.
+// More details read the this method comments, 
+// or go to https://tools.ietf.org/html/rfc1928 then search "zeros" keyword.
 await client.UdpAssociateAsync(IPAddress.Any, 0); 
 // Then Send and Receive on the client instance
 await client.SendAsync(...);
