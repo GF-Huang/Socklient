@@ -1,16 +1,15 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Net.Sockets;
 using System.Text;
 
-namespace SocklientDotNet {
-    public enum Method : byte {
+namespace Socklient {
+    enum Method : byte {
         NoAuthentication = 0x00,
-        GSSAPI = 0x01,
-        UsernamePassword = 0x02,
-        NoAcceptable = 0xff
+        UsernamePassword = 0x02
     }
 
-    public enum Command : byte {
+    enum Command : byte {
         Connect = 0x01,
         /// <summary>
         /// Unsupported yet
@@ -19,13 +18,13 @@ namespace SocklientDotNet {
         UdpAssociate = 0x03
     }
 
-    public enum AddressType : byte {
+    enum AddressType : byte {
         IPv4 = 0x01,
         Domain = 0x03,
         IPv6 = 0x04
     }
 
-    public enum Reply : byte {
+    enum Reply : byte {
         Successed = 0x00,
         GeneralFailure = 0x01,
         ConnectionNotAllowed = 0x02,
@@ -37,18 +36,18 @@ namespace SocklientDotNet {
         AddressTypeNotSupported = 0x08
     }
 
-    public enum SocksStatus {
+    enum SocksStatus {
         /// <summary>
         /// Before handshake and authentication.
         /// </summary>
         Initial,
         /// <summary>
-        /// After handshake and authentication, able to send data.
+        /// After handshake, authentication, and send <see cref="Command.Connect"/> command.
         /// </summary>
         Connected,
         /// <summary>
-        /// Connection closed, can not reuse.
+        /// Disposed, can not reuse.
         /// </summary>
-        Closed
+        Disposed
     }
 }

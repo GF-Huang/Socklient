@@ -2,34 +2,34 @@
 using System.Collections.Generic;
 using System.Text;
 
-namespace SocklientDotNet {
+#pragma warning disable CS1591 // 缺少对公共可见类型或成员的 XML 注释
+
+namespace Socklient {
+    /// <summary>
+    /// The exception that is thrown when the SOCKS5 server replies unexpected response.
+    /// </summary>
+    [Serializable]
     public class ProtocolErrorException : Exception {
         public ProtocolErrorException() { }
         public ProtocolErrorException(string message) : base(message) { }
         public ProtocolErrorException(string message, Exception inner) : base(message, inner) { }
+        protected ProtocolErrorException(
+          System.Runtime.Serialization.SerializationInfo info,
+          System.Runtime.Serialization.StreamingContext context) : base(info, context) { }
     }
 
-
-    public class MethodUnsupportedException : Exception {
-        public Method ServerReplyMethod { get; private set; }
-        public MethodUnsupportedException(Method serverReplyMethod) { ServerReplyMethod = serverReplyMethod; }
-        public MethodUnsupportedException(string message, Method serverReplyMethod) : base(message) { ServerReplyMethod = serverReplyMethod; }
-        public MethodUnsupportedException(string message, Method serverReplyMethod, Exception inner) : base(message, inner) { ServerReplyMethod = serverReplyMethod; }
-    }
-
-
-    public class AuthenticationFailureException : Exception {
-        public byte StatusCode { get; private set; }
-        public AuthenticationFailureException(byte statusCode) { StatusCode = statusCode; }
-        public AuthenticationFailureException(string message, byte statusCode) : base(message) { StatusCode = statusCode; }
-        public AuthenticationFailureException(string message, byte statusCode, Exception inner) : base(message, inner) { StatusCode = statusCode; }
-    }
-
-
-    public class CommandException : Exception {
-        public Reply Reply { get; private set; }
-        public CommandException(Reply reply) { Reply = reply; }
-        public CommandException(string message, Reply reply) : base(message) { Reply = reply; }
-        public CommandException(string message, Reply reply, Exception inner) : base(message, inner) { Reply = reply; }
+    /// <summary>
+    /// The exception that is thrown when authentication failed.
+    /// </summary>
+    [Serializable]
+    public class AuthenticationException : Exception {
+        public AuthenticationException() { }
+        public AuthenticationException(string message) : base(message) { }
+        public AuthenticationException(string message, Exception inner) : base(message, inner) { }
+        protected AuthenticationException(
+          System.Runtime.Serialization.SerializationInfo info,
+          System.Runtime.Serialization.StreamingContext context) : base(info, context) { }
     }
 }
+
+#pragma warning restore CS1591 // 缺少对公共可见类型或成员的 XML 注释
