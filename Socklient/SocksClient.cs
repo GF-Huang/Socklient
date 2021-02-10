@@ -118,8 +118,8 @@ namespace Socklient {
             if (_status == SocksStatus.Disposed)
                 throw new ObjectDisposedException(GetType().FullName);
 
-            await PrepareAsync(token);
-            await SendCommandAsync(Command.Connect, null, address, port, token);
+            await PrepareAsync(token).ConfigureAwait(false);
+            await SendCommandAsync(Command.Connect, null, address, port, token).ConfigureAwait(false);
 
             _status = SocksStatus.Connected;
         }
@@ -140,8 +140,8 @@ namespace Socklient {
             if (_status == SocksStatus.Disposed)
                 throw new ObjectDisposedException(GetType().FullName);
 
-            await PrepareAsync(token);
-            await SendCommandAsync(Command.Connect, domain, null, port, token);
+            await PrepareAsync(token).ConfigureAwait(false);
+            await SendCommandAsync(Command.Connect, domain, null, port, token).ConfigureAwait(false);
 
             _status = SocksStatus.Connected;
         }
@@ -173,8 +173,8 @@ namespace Socklient {
             if (_status == SocksStatus.Disposed)
                 throw new ObjectDisposedException(GetType().FullName);
 
-            await PrepareAsync(token);
-            await SendCommandAsync(Command.UdpAssociate, null, address, port, token);
+            await PrepareAsync(token).ConfigureAwait(false);
+            await SendCommandAsync(Command.UdpAssociate, null, address, port, token).ConfigureAwait(false);
 
             UdpClient = new UdpClient(port, address.AddressFamily);
             UdpClient.Connect(BoundAddress, BoundPort);
@@ -228,7 +228,7 @@ namespace Socklient {
                 WriteAddressInfo(addressLength, domain, address, port, buffer, 3);
                 data.Span.CopyTo(buffer.AsSpan(bufferLength - data.Length));
 
-                await UdpClient.SendAsync(buffer, bufferLength);
+                await UdpClient.SendAsync(buffer, bufferLength).ConfigureAwait(false);
 
             } finally {
                 ArrayPool<byte>.Shared.Return(buffer);
@@ -251,7 +251,7 @@ namespace Socklient {
             // +-----+------+------+----------+----------+----------+
             // |                  HEADER                 |          |
             // +----------------------------------------------------+
-            var result = await UdpClient.ReceiveAsync();
+            var result = await UdpClient.ReceiveAsync().ConfigureAwait(false);
             var buffer = result.Buffer;
             if (buffer.Length < 4)
                 ThrowBufferTooSmall(buffer);
@@ -275,18 +275,19 @@ namespace Socklient {
             token.ThrowIfCancellationRequested();
 
             if (_serverAddress != null)
-                await TcpClient.ConnectAsync(_serverAddress, _serverPort);
+                await TcpClient.ConnectAsync(_serverAddress, _serverPort).ConfigureAwait(false);
             else if (_serverHost != null)
-                await TcpClient.ConnectAsync(_serverHost, _serverPort);
+                await TcpClient.ConnectAsync(_serverHost, _serverPort).ConfigureAwait(false);
 
             _stream ??= TcpClient.GetStream();
 
-            var method = await HandshakeAsync(_credential == null ?
-                new[] { Method.NoAuthentication } :
-                new[] { Method.NoAuthentication, Method.UsernamePassword }, token);
+            var method = await HandshakeAsync(
+                _credential == null ? 
+                new[] { Method.NoAuthentication } : new[] { Method.NoAuthentication, Method.UsernamePassword }, 
+                token).ConfigureAwait(false);
 
             if (method == Method.UsernamePassword)
-                await AuthenticateAsync(token);
+                await AuthenticateAsync(token).ConfigureAwait(false);
         }
 
         private async Task<Method> HandshakeAsync(Method[] methods, CancellationToken token) {
@@ -303,14 +304,14 @@ namespace Socklient {
                 buffer[1] = (byte)methods.Length;
                 MemoryMarshal.AsBytes<Method>(methods).CopyTo(buffer.AsSpan(2, requestLength));
 
-                await _stream!.WriteAsync(buffer, 0, requestLength, token);
+                await _stream!.WriteAsync(buffer, 0, requestLength, token).ConfigureAwait(false);
 
                 // +-----+--------+
                 // | VER | METHOD |
                 // +-----+--------+
                 // |  1  |   1    |
                 // +-----+--------+
-                await _stream.ReadRequiredAsync(buffer, 0, 2, token);
+                await _stream.ReadRequiredAsync(buffer, 0, 2, token).ConfigureAwait(false);
 
                 if (buffer[0] != Version)
                     throw new ProtocolErrorException($"Server replies incompatible version: 0x{buffer[0]:X2}.");
@@ -347,14 +348,14 @@ namespace Socklient {
                 buffer[2 + bytesCount] = passwordLength;
                 Encoding.UTF8.GetBytes(_credential.Password, 0, _credential.Password.Length, buffer, 2 + bytesCount + 1);
 
-                await _stream!.WriteAsync(buffer, 0, requestLength, token);
+                await _stream!.WriteAsync(buffer, 0, requestLength, token).ConfigureAwait(false);
 
                 // +-----+--------+
                 // | VER | STATUS |
                 // +-----+--------+
                 // |  1  |   1    |
                 // +-----+--------+
-                await _stream.ReadRequiredAsync(buffer, 0, 2, token);
+                await _stream.ReadRequiredAsync(buffer, 0, 2, token).ConfigureAwait(false);
 
                 if (buffer[1] != 0)
                     throw new AuthenticationException($"Authentication failure with status code: 0x{buffer[1]:X}.");
@@ -380,7 +381,7 @@ namespace Socklient {
                 buffer[2] = 0;
                 WriteAddressInfo(addressLength, domain, address, port, buffer, 3);
 
-                await _stream!.WriteAsync(buffer, 0, requestLength, token);
+                await _stream!.WriteAsync(buffer, 0, requestLength, token).ConfigureAwait(false);
 
                 // +-----+-----+-------+------+----------+----------+
                 // | VER | REP |  RSV  | ATYP | BND.ADDR | BND.PORT |
@@ -396,7 +397,7 @@ namespace Socklient {
 
                 // First we assume it is IPv4, and if the assumption is correct, we can do the read operation only once. 
                 // If not, read more for IPv6.
-                await _stream!.ReadRequiredAsync(buffer, 0, responseLengthV4, token);
+                await _stream!.ReadRequiredAsync(buffer, 0, responseLengthV4, token).ConfigureAwait(false);
 
                 var isIPv6 = (AddressType)buffer[3] switch {
                     AddressType.IPv4 => false,
@@ -404,7 +405,8 @@ namespace Socklient {
                     _ => throw new ProtocolErrorException($"Server replies unexpected ATYP: 0x{buffer[3]:X2}.")
                 };
                 if (isIPv6)
-                    await _stream.ReadRequiredAsync(buffer, responseLengthV4, IPv6AddressLength - IPv4AddressLength, token);
+                    await _stream.ReadRequiredAsync(buffer, responseLengthV4, IPv6AddressLength - IPv4AddressLength, token)
+                                 .ConfigureAwait(false);
 
                 (_boundAddress, _boundPort) = ReadAddressInfo(isIPv6, buffer.AsSpan(4));
 

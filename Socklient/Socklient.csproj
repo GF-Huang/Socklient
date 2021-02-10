@@ -5,7 +5,7 @@
     <LangVersion Condition="'$(TargetFramework)' == 'netstandard2.0'">8.0</LangVersion>
     <Nullable>enable</Nullable>
     <RootNamespace>Socklient</RootNamespace>
-    <Version>4.0.0-alpha</Version>
+    <Version>4.0.0-alpha2</Version>
     <Authors>GF-Huang</Authors>
     <Company />
     <Description>A SOCKS5 client written in C# that implements RFC1928 &amp; RFC1929.
@@ -16,9 +16,7 @@ Supported SOCKS5 Commands: Connect &amp; UDP Associate.</Description>
     <RepositoryUrl>https://github.com/GF-Huang/Socklient</RepositoryUrl>
     <RepositoryType>git</RepositoryType>
     <PackageTags>SOCKS SOCKS5 proxy client</PackageTags>
-    <PackageReleaseNotes>Breaking change for high performance using new types Span&lt;T&gt; and Memory&lt;T&gt;!!!
-
-Read details: https://github.com/GF-Huang/Socklient/releases
+    <PackageReleaseNotes>Add .ConfigureAwait(false).
 </PackageReleaseNotes>
   </PropertyGroup>
 
