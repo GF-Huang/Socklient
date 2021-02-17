@@ -188,7 +188,7 @@ namespace Socklient {
         /// <param name="datagram">The datagram to send.</param>
         /// <param name="domain">The destination domain.</param>
         /// <param name="port">The destination port.</param>
-        public Task SendAsync(ReadOnlyMemory<byte> datagram, string domain, int port) {
+        public Task<int> SendAsync(ReadOnlyMemory<byte> datagram, string domain, int port) {
             if (domain is null)
                 throw new ArgumentNullException(nameof(domain));
 
@@ -201,14 +201,14 @@ namespace Socklient {
         /// <param name="datagram">The datagram to send.</param>
         /// <param name="address">The destination address.</param>
         /// <param name="port">The destination port.</param>
-        public Task SendAsync(ReadOnlyMemory<byte> datagram, IPAddress address, int port) {
+        public Task<int> SendAsync(ReadOnlyMemory<byte> datagram, IPAddress address, int port) {
             if (address is null)
                 throw new ArgumentNullException(nameof(address));
 
             return SendAsync(datagram, domain: null, address, port);
         }
 
-        private async Task SendAsync(ReadOnlyMemory<byte> data, string? domain, IPAddress? address, int port) {
+        private async Task<int> SendAsync(ReadOnlyMemory<byte> data, string? domain, IPAddress? address, int port) {
             if (UdpClient == null)
                 throw new InvalidOperationException($"The {GetType().FullName} is not associated.");
             if (_status == SocksStatus.Disposed)
@@ -229,6 +229,8 @@ namespace Socklient {
                 data.Span.CopyTo(buffer.AsSpan(bufferLength - data.Length));
 
                 await UdpClient.SendAsync(buffer, bufferLength).ConfigureAwait(false);
+
+                return bufferLength;
 
             } finally {
                 ArrayPool<byte>.Shared.Return(buffer);
