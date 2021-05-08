@@ -5,7 +5,7 @@
     <LangVersion Condition="'$(TargetFramework)' == 'netstandard2.0'">8.0</LangVersion>
     <Nullable>enable</Nullable>
     <RootNamespace>Socklient</RootNamespace>
-    <Version>4.0.0-alpha3</Version>
+    <Version>4.0.0-alpha4</Version>
     <Authors>GF-Huang</Authors>
     <Company />
     <Description>A SOCKS5 client written in C# that implements RFC1928 &amp; RFC1929.
@@ -16,7 +16,7 @@ Supported SOCKS5 Commands: Connect &amp; UDP Associate.</Description>
     <RepositoryUrl>https://github.com/GF-Huang/Socklient</RepositoryUrl>
     <RepositoryType>git</RepositoryType>
     <PackageTags>SOCKS SOCKS5 proxy client</PackageTags>
-    <PackageReleaseNotes>Change SendAsync return value.</PackageReleaseNotes>
+    <PackageReleaseNotes>Fix wrong BoundPort.</PackageReleaseNotes>
   </PropertyGroup>
 
   <PropertyGroup>

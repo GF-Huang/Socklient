@@ -161,7 +161,7 @@ namespace Socklient {
         /// <summary>
         /// Do handshake and authentication (if need), then send a <see cref="Command.UdpAssociate"/> command to the SOCKS5 server.
         /// <para>
-        /// The <paramref name="address"/> and <paramref name="port"/> fields contain the address and port that the client expects to use to send UDP datagrams on for the association. The server MAY use this information to limit access to the association. If the client is not in possesion of the information at the time of UDP Associate (for example, all personal users are NAT, there is no way to determine the public IP and port they will use before sending), the client MUST use a port number and address of all zeros.
+        /// The <paramref name="address"/> and <paramref name="port"/> fields contain the address and port that the client expects to use to send UDP datagrams on for the association. The server MAY use this information to limit access to the association. If the client is not in possesion of the information at the time of UDP Associate (for example, most home users are behind NAT, there is no way to determine the public IP and port they will use before sending), the client MUST use a port number and address of all zeros.
         /// </para>
         /// </summary>
         /// <param name="address">The address that the client expects to use to send UDP datagrams on for the association. Alias of DST.ADDR defined in RFC 1928 UDP Associate.</param>
@@ -175,6 +175,11 @@ namespace Socklient {
 
             await PrepareAsync(token).ConfigureAwait(false);
             await SendCommandAsync(Command.UdpAssociate, null, address, port, token).ConfigureAwait(false);
+
+            if (BoundAddress.Equals(IPAddress.Any) || BoundAddress.Equals(IPAddress.IPv6Any)) 
+                _boundAddress = _serverAddress ?? ((IPEndPoint)TcpClient.Client.RemoteEndPoint).Address;
+            if (BoundPort == 0)
+                _boundPort = ((IPEndPoint)TcpClient.Client.RemoteEndPoint).Port;
 
             UdpClient = new UdpClient(port, address.AddressFamily);
             UdpClient.Connect(BoundAddress, BoundPort);
@@ -284,8 +289,8 @@ namespace Socklient {
             _stream ??= TcpClient.GetStream();
 
             var method = await HandshakeAsync(
-                _credential == null ? 
-                new[] { Method.NoAuthentication } : new[] { Method.NoAuthentication, Method.UsernamePassword }, 
+                _credential == null ?
+                new[] { Method.NoAuthentication } : new[] { Method.NoAuthentication, Method.UsernamePassword },
                 token).ConfigureAwait(false);
 
             if (method == Method.UsernamePassword)
@@ -467,7 +472,7 @@ namespace Socklient {
             var address = new IPAddress(buffer.Slice(0, addressLength));
 #endif
 
-            var port = BinaryPrimitives.ReadUInt16LittleEndian(buffer.Slice(addressLength, 2));
+            var port = BinaryPrimitives.ReadUInt16BigEndian(buffer.Slice(addressLength, 2));
 
             return (address, port);
         }

@@ -110,7 +110,7 @@
             <summary>
             Do handshake and authentication (if need), then send a <see cref="F:Socklient.Command.UdpAssociate"/> command to the SOCKS5 server.
             <para>
-            The <paramref name="address"/> and <paramref name="port"/> fields contain the address and port that the client expects to use to send UDP datagrams on for the association. The server MAY use this information to limit access to the association. If the client is not in possesion of the information at the time of UDP Associate (for example, all personal users are NAT, there is no way to determine the public IP and port they will use before sending), the client MUST use a port number and address of all zeros.
+            The <paramref name="address"/> and <paramref name="port"/> fields contain the address and port that the client expects to use to send UDP datagrams on for the association. The server MAY use this information to limit access to the association. If the client is not in possesion of the information at the time of UDP Associate (for example, most home users are behind NAT, there is no way to determine the public IP and port they will use before sending), the client MUST use a port number and address of all zeros.
             </para>
             </summary>
             <param name="address">The address that the client expects to use to send UDP datagrams on for the association. Alias of DST.ADDR defined in RFC 1928 UDP Associate.</param>
