@@ -47,6 +47,8 @@ namespace Socklient {
         private const byte IPv4AddressLength = 4;
         private const byte DomainMaxLength = 255;
         private const byte IPv6AddressLength = 16;
+        private static readonly Method[] MethodsNoAuth = new[] { Method.NoAuthentication };
+        private static readonly Method[] MethodsNoAuthUsernamePassword = new[] { Method.NoAuthentication, Method.UsernamePassword };
 
         private readonly IPAddress? _serverAddress;
         private readonly string? _serverHost;
@@ -176,12 +178,13 @@ namespace Socklient {
             await PrepareAsync(token).ConfigureAwait(false);
             await SendCommandAsync(Command.UdpAssociate, null, address, port, token).ConfigureAwait(false);
 
-            if (BoundAddress.Equals(IPAddress.Any) || BoundAddress.Equals(IPAddress.IPv6Any)) 
+            if (BoundAddress.Equals(IPAddress.Any) || BoundAddress.Equals(IPAddress.IPv6Any))
                 _boundAddress = _serverAddress ?? ((IPEndPoint)TcpClient.Client.RemoteEndPoint).Address;
             if (BoundPort == 0)
                 _boundPort = ((IPEndPoint)TcpClient.Client.RemoteEndPoint).Port;
 
-            UdpClient = new UdpClient(port, address.AddressFamily);
+            UdpClient = new UdpClient(AddressFamily.InterNetworkV6);
+            UdpClient.Client.DualMode = true;
             UdpClient.Connect(BoundAddress, BoundPort);
 
             _status = SocksStatus.Connected;
@@ -288,10 +291,7 @@ namespace Socklient {
 
             _stream ??= TcpClient.GetStream();
 
-            var method = await HandshakeAsync(
-                _credential == null ?
-                new[] { Method.NoAuthentication } : new[] { Method.NoAuthentication, Method.UsernamePassword },
-                token).ConfigureAwait(false);
+            var method = await HandshakeAsync(_credential == null ? MethodsNoAuth : MethodsNoAuthUsernamePassword, token).ConfigureAwait(false);
 
             if (method == Method.UsernamePassword)
                 await AuthenticateAsync(token).ConfigureAwait(false);
