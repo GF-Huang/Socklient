@@ -450,7 +450,8 @@ namespace Socklient {
 #if NETSTANDARD2_0
                 address!.GetAddressBytes().CopyTo(buffer.AsSpan(offset));
 #elif NETSTANDARD2_1
-                Debug.Assert(address!.TryWriteBytes(buffer.AsSpan(offset), out _));
+                if (!address!.TryWriteBytes(buffer.AsSpan(offset), out _))
+                    throw new InvalidOperationException("Address buffer insufficient.");
 #endif
                 offset += addressLength;
             }
