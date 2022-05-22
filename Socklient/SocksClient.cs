@@ -40,6 +40,23 @@ namespace Socklient {
         /// </summary>
         public UdpClient? UdpClient { get; private set; }
 
+        /// <summary>
+        /// Used to decide whether to ignore the BND.ADDR responded by UDP Associate command. Default return false.
+        /// <para>
+        /// In the Internet world, a considerable number of SOCKS5 servers have incorrect UDP Associate implementation. 
+        /// </para>
+        /// <para>
+        /// According to the description of UDP Association in RFC 1928: "In the reply to a UDP ASSOCIATE request, the BND.PORT and BND.ADDR fields indicate the port number/address where the client MUST send UDP request messages to be relayed.", the server should respond its public IP address. If the server has multiple public IP addresses, the server should decide which public IP to respond according to its own strategy. 
+        /// </para>
+        /// <para>
+        /// However, most SOCKS5 servers implementations are very rough. They often use some private addresses as BND.ADDR respond to the client, such as 10.0.0.1, 172.16.1.1, 192.168.1.1 and so on. In this case, the UDP packet sent by the client cannot reach the server at all, unless the client and the server are in the same LAN.
+        /// </para>
+        /// <para>
+        /// Therefore, through this callback, the client can according to the received BND.ADDR to determine whether this address is a private address. If true is returned, the client will send UDP packet to ServerAddress:BND.PORT; If false is returned, it will send UDP packet to BND.ADDR:BND.PORT.
+        /// </para>
+        /// </summary>
+        public ShouldIgnoreBoundAddressCallback ShouldIgnoreBoundAddressCallback { get; set; } = (s, a) => Task.FromResult(false);
+
         private const byte Version = 0x5;
         private const byte AuthenticationVersion = 0x1;
         private const byte UsernameMaxLength = 255;
@@ -183,9 +200,13 @@ namespace Socklient {
             if (BoundPort == 0)
                 _boundPort = ((IPEndPoint)TcpClient.Client.RemoteEndPoint).Port;
 
+            var ignoreBoundAddress = await ShouldIgnoreBoundAddressCallback(this, BoundAddress).ConfigureAwait(false);
+            var addressToConnect = ignoreBoundAddress ? (_serverAddress ?? ((IPEndPoint)TcpClient.Client.RemoteEndPoint).Address) :
+                                                        BoundAddress;
+
             UdpClient = new UdpClient(AddressFamily.InterNetworkV6);
             UdpClient.Client.DualMode = true;
-            UdpClient.Connect(BoundAddress, BoundPort);
+            UdpClient.Connect(addressToConnect, BoundPort);
 
             _status = SocksStatus.Connected;
         }
@@ -470,7 +491,7 @@ namespace Socklient {
 #if NETSTANDARD2_0
             var address = new IPAddress(buffer.Slice(0, addressLength).ToArray());
 #elif NETSTANDARD2_1
-            var address = new IPAddress(buffer.Slice(0, addressLength));
+            var address = new IPAddress(buffer[..addressLength]);
 #endif
 
             var port = BinaryPrimitives.ReadUInt16BigEndian(buffer.Slice(addressLength, 2));
@@ -481,4 +502,24 @@ namespace Socklient {
         private static void ThrowBufferTooSmall(byte[] buffer) =>
             throw new ProtocolErrorException($"Server replies a packet that was smaller than expected: {BitConverter.ToString(buffer)}");
     }
+
+    /// <summary>
+    /// Used to decide whether to ignore the BND.ADDR responded by UDP Associate command.
+    /// <para>
+    /// In the Internet world, a considerable number of SOCKS5 servers have incorrect UDP Associate implementation. 
+    /// </para>
+    /// <para>
+    /// According to the description of UDP Association in RFC 1928: "In the reply to a UDP ASSOCIATE request, the BND.PORT and BND.ADDR fields indicate the port number/address where the client MUST send UDP request messages to be relayed.", the server should respond its public IP address. If the server has multiple public IP addresses, the server should decide which public IP to respond according to its own strategy. 
+    /// </para>
+    /// <para>
+    /// However, most SOCKS5 servers implementations are very rough. They often use some private addresses as BND.ADDR respond to the client, such as 10.0.0.1, 172.16.1.1, 192.168.1.1 and so on. In this case, the UDP packet sent by the client cannot reach the server at all, unless the client and the server are in the same LAN.
+    /// </para>
+    /// <para>
+    /// Therefore, through this callback, the client can according to the received BND.ADDR to determine whether this address is a private address. If true is returned, the client will send UDP packet to ServerAddress:BND.PORT; If false is returned, it will send UDP packet to BND.ADDR:BND.PORT.
+    /// </para>
+    /// </summary>
+    /// <param name="sender">The <see cref="SocksClient"/> instance which calls the callback.</param>
+    /// <param name="address">The BND.ADDR of responded by UDP Associate command.</param>
+    /// <returns></returns>
+    public delegate Task<bool> ShouldIgnoreBoundAddressCallback(SocksClient sender, IPAddress address);
 }
