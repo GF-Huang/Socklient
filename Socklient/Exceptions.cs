@@ -30,6 +30,21 @@ namespace Socklient {
           System.Runtime.Serialization.SerializationInfo info,
           System.Runtime.Serialization.StreamingContext context) : base(info, context) { }
     }
+
+    /// <summary>
+    /// The exception that is thrown when the REP field not equals to <see cref="Reply.Successed"/>(0x00).
+    /// </summary>
+    [Serializable]
+    public class ReplyException : Exception {
+        public Reply Reply { get; }
+
+        public ReplyException(Reply reply) : base($"Server reply error: {reply}.") => Reply = reply;
+        public ReplyException(Reply reply, string message) : base(message) => Reply = reply;
+        public ReplyException(Reply reply, string message, Exception inner) : base(message, inner) => Reply = reply;
+        protected ReplyException(
+          System.Runtime.Serialization.SerializationInfo info,
+          System.Runtime.Serialization.StreamingContext context) : base(info, context) { }
+    }
 }
 
 #pragma warning restore CS1591 // 缺少对公共可见类型或成员的 XML 注释

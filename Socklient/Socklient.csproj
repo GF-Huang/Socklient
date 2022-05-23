@@ -5,18 +5,17 @@
     <LangVersion Condition="'$(TargetFramework)' == 'netstandard2.0'">8.0</LangVersion>
     <Nullable>enable</Nullable>
     <RootNamespace>Socklient</RootNamespace>
-    <Version>4.0.0</Version>
+    <Version>4.1.0-alpha</Version>
     <Authors>GF-Huang</Authors>
     <Company />
     <Description>A SOCKS5 client written in C# that implements RFC1928 &amp; RFC1929.
 
 Supported SOCKS5 Commands: Connect &amp; UDP Associate.</Description>
-    <PackageLicenseExpression>MIT</PackageLicenseExpression>
     <PackageProjectUrl>https://github.com/GF-Huang/Socklient</PackageProjectUrl>
     <RepositoryUrl>https://github.com/GF-Huang/Socklient</RepositoryUrl>
     <RepositoryType>git</RepositoryType>
     <PackageTags>SOCKS SOCKS5 proxy client</PackageTags>
-    <PackageReleaseNotes>Fix bug.</PackageReleaseNotes>
+    <PackageReleaseNotes>Add ShouldIgnoreBoundAddressCallback and DomainAddressBehavior properties for compatible with some strange SOCKS5 server implementations.</PackageReleaseNotes>
   </PropertyGroup>
 
   <PropertyGroup>
@@ -24,6 +23,7 @@ Supported SOCKS5 Commands: Connect &amp; UDP Associate.</Description>
     <IncludeSymbols>true</IncludeSymbols>
     <SymbolPackageFormat>snupkg</SymbolPackageFormat>
     <EmbedUntrackedSources>true</EmbedUntrackedSources>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
   </PropertyGroup>
 
   <ItemGroup Condition="'$(TargetFramework)' == 'netstandard2.0'">

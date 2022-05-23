@@ -16,12 +16,78 @@
         </member>
         <member name="F:Socklient.SocksStatus.Connected">
             <summary>
-            After handshake, authentication, and send <see cref="F:Socklient.Command.Connect"/> command.
+            After handshake, authentication, and send <see cref="F:Socklient.Command.Connect"/> or <see cref="F:Socklient.Command.UdpAssociate"/> command.
             </summary>
         </member>
         <member name="F:Socklient.SocksStatus.Disposed">
             <summary>
             Disposed, can not reuse.
+            </summary>
+        </member>
+        <member name="T:Socklient.Reply">
+            <summary>
+            Indicates the reply code of the server to the request.
+            </summary>
+        </member>
+        <member name="F:Socklient.Reply.Successed">
+            <summary>
+            Succeeded.
+            </summary>
+        </member>
+        <member name="F:Socklient.Reply.GeneralFailure">
+            <summary>
+            General SOCKS server failure.
+            </summary>
+        </member>
+        <member name="F:Socklient.Reply.ConnectionNotAllowed">
+            <summary>
+            Connection not allowed by ruleset.
+            </summary>
+        </member>
+        <member name="F:Socklient.Reply.NetworkUnreachable">
+            <summary>
+            Network unreachable.
+            </summary>
+        </member>
+        <member name="F:Socklient.Reply.HostUnreachable">
+            <summary>
+            Host unreachable.
+            </summary>
+        </member>
+        <member name="F:Socklient.Reply.ConnectionRefused">
+            <summary>
+            Connection refused.
+            </summary>
+        </member>
+        <member name="F:Socklient.Reply.TTLExpired">
+            <summary>
+            TTL expired.
+            </summary>
+        </member>
+        <member name="F:Socklient.Reply.CommandNotSupported">
+            <summary>
+            Command not supported.
+            </summary>
+        </member>
+        <member name="F:Socklient.Reply.AddressTypeNotSupported">
+            <summary>
+            Address type not supported.
+            </summary>
+        </member>
+        <member name="T:Socklient.DomainAddressBehavior">
+            <summary>
+            Determine the behavior when the client receive a <see cref="F:Socklient.AddressType.Domain"/> ATYP.
+            </summary>
+        </member>
+        <member name="F:Socklient.DomainAddressBehavior.ThrowException">
+            <summary>
+            Throw a <see cref="T:Socklient.ProtocolErrorException"/>.
+            </summary>
+        </member>
+        <member name="F:Socklient.DomainAddressBehavior.UseConnectedAddress">
+            <summary>
+            Use the <see cref="P:Socklient.SocksClient.TcpClient"/> connected remote address as BND.ADDR. 
+            It is usually the address of the server specified when calling ConnectAsync or UdpAssociateAsync.
             </summary>
         </member>
         <member name="T:Socklient.ProtocolErrorException">
@@ -32,6 +98,11 @@
         <member name="T:Socklient.AuthenticationException">
             <summary>
             The exception that is thrown when authentication failed.
+            </summary>
+        </member>
+        <member name="T:Socklient.ReplyException">
+            <summary>
+            The exception that is thrown when the REP field not equals to <see cref="F:Socklient.Reply.Successed"/>(0x00).
             </summary>
         </member>
         <member name="T:Socklient.SocksClient">
@@ -64,7 +135,33 @@
         </member>
         <member name="P:Socklient.SocksClient.ShouldIgnoreBoundAddressCallback">
             <summary>
-            
+            Used to decide whether to ignore the BND.ADDR responded by UDP Associate command. Default return false.
+            <para>
+            In the Internet world, a considerable number of SOCKS5 servers have incorrect UDP Associate implementation. 
+            </para>
+            <para>
+            According to the description of UDP Association in RFC 1928: "In the reply to a UDP ASSOCIATE request, the BND.PORT and BND.ADDR fields indicate the port number/address where the client MUST send UDP request messages to be relayed.", the server should respond its public IP address. If the server has multiple public IP addresses, the server should decide which public IP to respond according to its own strategy. 
+            </para>
+            <para>
+            However, most SOCKS5 servers implementations are very rough. They often use some private addresses as BND.ADDR respond to the client, such as 10.0.0.1, 172.16.1.1, 192.168.1.1 and so on. In this case, the UDP packet sent by the client cannot reach the server at all, unless the client and the server are in the same LAN.
+            </para>
+            <para>
+            Therefore, through this callback, the client can according to the received BND.ADDR to determine whether this address is a private address. If true is returned, the client will send UDP packet to ServerAddress:BND.PORT; If false is returned, it will send UDP packet to BND.ADDR:BND.PORT.
+            </para>
+            </summary>
+        </member>
+        <member name="P:Socklient.SocksClient.DomainAddressBehavior">
+            <summary>
+            Determine the behavior when the client receive a <see cref="F:Socklient.AddressType.Domain"/> ATYP. 
+            The default value is <see cref="F:Socklient.DomainAddressBehavior.ThrowException"/>.
+            <para>
+            Some SOCKS5 servers may hide the server's other IPs or other reasons, when responding to <see cref="F:Socklient.Command.Connect"/> or <see cref="F:Socklient.Command.UdpAssociate"/> request, they reply <see cref="F:Socklient.AddressType.Domain"/>(0x03) as ATYP. 
+            This property determines what behavior the client should take in this case.
+            </para>
+            <para>
+            Note: This property only effects <see cref="F:Socklient.Command.Connect"/> and <see cref="F:Socklient.Command.UdpAssociate"/> request. 
+            If UDP relay message header contains <see cref="F:Socklient.AddressType.Domain"/>(0x03) ATYP, it will always throw a <see cref="T:Socklient.ProtocolErrorException"/> exception.
+            </para>
             </summary>
         </member>
         <member name="M:Socklient.SocksClient.#ctor(System.Net.IPAddress,System.Int32,System.Net.NetworkCredential)">
@@ -156,7 +253,7 @@
             However, most SOCKS5 servers implementations are very rough. They often use some private addresses as BND.ADDR respond to the client, such as 10.0.0.1, 172.16.1.1, 192.168.1.1 and so on. In this case, the UDP packet sent by the client cannot reach the server at all, unless the client and the server are in the same LAN.
             </para>
             <para>
-            Therefore, through this callback, the client can according to the received BND.ADDR to determine whether this address is a private address. If true is returnedtrue, the client will send UDP packet to ServerAddress:BND.PORT; If false is returned, it will send UDP packet to BND.ADDR:BND.PORT.
+            Therefore, through this callback, the client can according to the received BND.ADDR to determine whether this address is a private address. If true is returned, the client will send UDP packet to ServerAddress:BND.PORT; If false is returned, it will send UDP packet to BND.ADDR:BND.PORT.
             </para>
             </summary>
             <param name="sender">The <see cref="T:Socklient.SocksClient"/> instance which calls the callback.</param>

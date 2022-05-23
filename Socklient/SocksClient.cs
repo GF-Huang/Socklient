@@ -32,7 +32,7 @@ namespace Socklient {
         /// <summary>
         /// Get underlying <see cref="System.Net.Sockets.TcpClient"/> for more fine-grained control in CONNECT mode.
         /// </summary>
-        public TcpClient TcpClient { get; private set; } = new TcpClient();
+        public TcpClient TcpClient { get; } = new TcpClient();
 
         /// <summary>
         /// Get underlying <see cref="System.Net.Sockets.UdpClient"/> for more fine-grained control in UDP-ASSOCIATE mode.
@@ -57,13 +57,31 @@ namespace Socklient {
         /// </summary>
         public ShouldIgnoreBoundAddressCallback ShouldIgnoreBoundAddressCallback { get; set; } = (s, a) => Task.FromResult(false);
 
+        /// <summary>
+        /// Determine the behavior when the client receive a <see cref="AddressType.Domain"/> ATYP. 
+        /// The default value is <see cref="DomainAddressBehavior.ThrowException"/>.
+        /// <para>
+        /// Some SOCKS5 servers may hide the server's other IPs or other reasons, when responding to <see cref="Command.Connect"/> or <see cref="Command.UdpAssociate"/> request, they reply <see cref="AddressType.Domain"/>(0x03) as ATYP. 
+        /// This property determines what behavior the client should take in this case.
+        /// </para>
+        /// <para>
+        /// Note: This property only effects <see cref="Command.Connect"/> and <see cref="Command.UdpAssociate"/> request. 
+        /// If UDP relay message header contains <see cref="AddressType.Domain"/>(0x03) ATYP, it will always throw a <see cref="ProtocolErrorException"/> exception.
+        /// </para>
+        /// </summary>
+        public DomainAddressBehavior DomainAddressBehavior { get; set; } = DomainAddressBehavior.ThrowException;
+
+        private IPAddress RemoteAddress => ((IPEndPoint)TcpClient.Client.RemoteEndPoint).Address;
+
         private const byte Version = 0x5;
         private const byte AuthenticationVersion = 0x1;
         private const byte UsernameMaxLength = 255;
         private const byte PasswordMaxLength = 255;
         private const byte IPv4AddressLength = 4;
+        private const byte DomainLengthByteLength = 1;
         private const byte DomainMaxLength = 255;
         private const byte IPv6AddressLength = 16;
+        private const byte PortLength = 2;
         private static readonly Method[] MethodsNoAuth = new[] { Method.NoAuthentication };
         private static readonly Method[] MethodsNoAuthUsernamePassword = new[] { Method.NoAuthentication, Method.UsernamePassword };
 
@@ -196,13 +214,12 @@ namespace Socklient {
             await SendCommandAsync(Command.UdpAssociate, null, address, port, token).ConfigureAwait(false);
 
             if (BoundAddress.Equals(IPAddress.Any) || BoundAddress.Equals(IPAddress.IPv6Any))
-                _boundAddress = _serverAddress ?? ((IPEndPoint)TcpClient.Client.RemoteEndPoint).Address;
+                _boundAddress = _serverAddress ?? RemoteAddress;
             if (BoundPort == 0)
                 _boundPort = ((IPEndPoint)TcpClient.Client.RemoteEndPoint).Port;
 
             var ignoreBoundAddress = await ShouldIgnoreBoundAddressCallback(this, BoundAddress).ConfigureAwait(false);
-            var addressToConnect = ignoreBoundAddress ? (_serverAddress ?? ((IPEndPoint)TcpClient.Client.RemoteEndPoint).Address) :
-                                                        BoundAddress;
+            var addressToConnect = ignoreBoundAddress ? (_serverAddress ?? RemoteAddress) : BoundAddress;
 
             UdpClient = new UdpClient(AddressFamily.InterNetworkV6);
             UdpClient.Client.DualMode = true;
@@ -249,7 +266,7 @@ namespace Socklient {
             // |  2  |  1   |  1   | Variable |    2     | Variable |
             // +-----+------+------+----------+----------+----------+
             var addressLength = GetAddressLength(domain, address);
-            var bufferLength = 2 + 1 + 1 + (domain != null ? 1 : 0) + addressLength + 2 + data.Length;
+            var bufferLength = 2 + 1 + 1 + (domain != null ? DomainLengthByteLength : 0) + addressLength + PortLength + data.Length;
             var buffer = ArrayPool<byte>.Shared.Rent(bufferLength);
 
             try {
@@ -293,7 +310,7 @@ namespace Socklient {
                 _ => throw new ProtocolErrorException($"Server replies unexpected ATYP: 0x{buffer[3]:X2}.")
             };
 
-            var headerLength = 4 + (isIPv6 ? IPv6AddressLength : IPv4AddressLength) + 2;
+            var headerLength = 4 + (isIPv6 ? IPv6AddressLength : IPv4AddressLength) + PortLength;
             if (buffer.Length <= headerLength)
                 ThrowBufferTooSmall(buffer);
 
@@ -394,14 +411,16 @@ namespace Socklient {
         }
 
         private async Task SendCommandAsync(Command command, string? domain, IPAddress? address, int port, CancellationToken token) {
+            const int MaxRequestResponseLength = 1 + 1 + 1 + 1 + DomainLengthByteLength + DomainMaxLength + PortLength;
+            var buffer = ArrayPool<byte>.Shared.Rent(MaxRequestResponseLength);
+
             // +-----+-----+-------+------+----------+----------+
             // | VER | CMD |  RSV  | ATYP | DST.ADDR | DST.PORT |
             // +-----+-----+-------+------+----------+----------+
             // |  1  |  1  | X'00' |  1   | Variable |    2     |
             // +-----+-----+-------+------+----------+----------+
             var addressLength = GetAddressLength(domain, address);
-            var requestLength = 1 + 1 + 1 + 1 + (domain != null ? 1 : 0) + addressLength + 2;
-            var buffer = ArrayPool<byte>.Shared.Rent(requestLength);
+            var requestLength = 1 + 1 + 1 + 1 + (domain != null ? DomainLengthByteLength : 0) + addressLength + PortLength;
 
             try {
                 buffer[0] = Version;
@@ -416,27 +435,51 @@ namespace Socklient {
                 // +-----+-----+-------+------+----------+----------+
                 // |  1  |  1  | X'00' |  1   | Variable |    2     |
                 // +-----+-----+-------+------+----------+----------+
-                var responseLengthV4 = 1 + 1 + 1 + 1 + IPv4AddressLength + 2;
-                var responseLengthV6 = 1 + 1 + 1 + 1 + IPv6AddressLength + 2;
-                if (buffer.Length < responseLengthV6) {
-                    ArrayPool<byte>.Shared.Return(buffer);
-                    buffer = ArrayPool<byte>.Shared.Rent(responseLengthV6);
+                const int IPv4ResponseLength = 1 + 1 + 1 + 1 + IPv4AddressLength + PortLength;
+                const int IPv6ResponseLength = 1 + 1 + 1 + 1 + IPv6AddressLength + PortLength;
+                const int MinResponseLength = IPv4ResponseLength;
+
+                // At first, try to read the full response.
+                var bytesRead = await _stream.ReadAsync(buffer, 0, MaxRequestResponseLength).ConfigureAwait(false);
+                // read more until MinResponseLength
+                if (bytesRead < MinResponseLength) {
+                    await _stream.ReadRequiredAsync(buffer, bytesRead, MinResponseLength - bytesRead, token).ConfigureAwait(false);
+                    bytesRead = MinResponseLength;
                 }
 
-                // First we assume it is IPv4, and if the assumption is correct, we can do the read operation only once. 
-                // If not, read more for IPv6.
-                await _stream!.ReadRequiredAsync(buffer, 0, responseLengthV4, token).ConfigureAwait(false);
+                // Now, it is guaranteed that at least 10 (MinResponseLength) bytes have been read.
+                if ((Reply)buffer[1] != Reply.Successed)
+                    throw new ReplyException((Reply)buffer[1]);
 
-                var isIPv6 = (AddressType)buffer[3] switch {
-                    AddressType.IPv4 => false,
-                    AddressType.IPv6 => true,
-                    _ => throw new ProtocolErrorException($"Server replies unexpected ATYP: 0x{buffer[3]:X2}.")
-                };
-                if (isIPv6)
-                    await _stream.ReadRequiredAsync(buffer, responseLengthV4, IPv6AddressLength - IPv4AddressLength, token)
-                                 .ConfigureAwait(false);
+                switch ((AddressType)buffer[3]) {
+                    case AddressType.IPv4:
+                        (_boundAddress, _boundPort) = ReadAddressInfo(isIPv6: false, buffer.AsSpan(4));
+                        break;
 
-                (_boundAddress, _boundPort) = ReadAddressInfo(isIPv6, buffer.AsSpan(4));
+                    case AddressType.IPv6:
+                        if (bytesRead < IPv6ResponseLength)
+                            await _stream.ReadRequiredAsync(buffer, bytesRead, IPv6ResponseLength - bytesRead, token).ConfigureAwait(false);
+                        (_boundAddress, _boundPort) = ReadAddressInfo(isIPv6: true, buffer.AsSpan(4));
+                        break;
+
+                    case AddressType.Domain:
+                        if (DomainAddressBehavior == DomainAddressBehavior.UseConnectedAddress) {
+                            var domainLength = buffer[4];
+                            var domainResponseLength = 1 + 1 + 1 + 1 + DomainLengthByteLength + domainLength + PortLength;
+                            if (bytesRead < domainResponseLength)
+                                await _stream.ReadRequiredAsync(buffer, bytesRead, domainResponseLength - bytesRead, token)
+                                             .ConfigureAwait(false);
+                            _boundAddress = RemoteAddress;
+                            _boundPort = BinaryPrimitives.ReadUInt16BigEndian(buffer.AsSpan(domainResponseLength - PortLength, PortLength));
+
+                        } else { // DomainAddressBehavior.ThrowException
+                            throw new ProtocolErrorException($"Server replies unexpected ATYP: 0x{buffer[3]:X2}.");
+                        }
+                        break;
+
+                    default:
+                        throw new ProtocolErrorException($"Server replies unknown ATYP: 0x{buffer[3]:X2}.");
+                }
 
             } finally {
                 ArrayPool<byte>.Shared.Return(buffer);
