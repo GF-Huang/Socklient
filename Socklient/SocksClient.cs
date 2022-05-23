@@ -435,9 +435,10 @@ namespace Socklient {
                 // +-----+-----+-------+------+----------+----------+
                 // |  1  |  1  | X'00' |  1   | Variable |    2     |
                 // +-----+-----+-------+------+----------+----------+
+                // 0 length domain in some servers rough implementation
+                const int MinResponseLength = 1 + 1 + 1 + 1 + DomainLengthByteLength + 0 + PortLength; 
                 const int IPv4ResponseLength = 1 + 1 + 1 + 1 + IPv4AddressLength + PortLength;
                 const int IPv6ResponseLength = 1 + 1 + 1 + 1 + IPv6AddressLength + PortLength;
-                const int MinResponseLength = IPv4ResponseLength;
 
                 // At first, try to read the full response.
                 var bytesRead = await _stream.ReadAsync(buffer, 0, MaxRequestResponseLength).ConfigureAwait(false);
@@ -447,12 +448,14 @@ namespace Socklient {
                     bytesRead = MinResponseLength;
                 }
 
-                // Now, it is guaranteed that at least 10 (MinResponseLength) bytes have been read.
+                // Now, it is guaranteed that at least 7 (MinResponseLength) bytes have been read.
                 if ((Reply)buffer[1] != Reply.Successed)
                     throw new ReplyException((Reply)buffer[1]);
 
                 switch ((AddressType)buffer[3]) {
                     case AddressType.IPv4:
+                        if (bytesRead < IPv4ResponseLength)
+                            await _stream.ReadRequiredAsync(buffer, bytesRead, IPv4ResponseLength - bytesRead, token).ConfigureAwait(false);
                         (_boundAddress, _boundPort) = ReadAddressInfo(isIPv6: false, buffer.AsSpan(4));
                         break;
 
