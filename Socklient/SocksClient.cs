@@ -347,7 +347,7 @@ namespace Socklient {
             try {
                 buffer[0] = Version;
                 buffer[1] = (byte)methods.Length;
-                MemoryMarshal.AsBytes<Method>(methods).CopyTo(buffer.AsSpan(2, requestLength));
+                MemoryMarshal.AsBytes<Method>(methods).CopyTo(buffer.AsSpan(2, methods.Length));
 
                 await _stream!.WriteAsync(buffer, 0, requestLength, token).ConfigureAwait(false);
 
